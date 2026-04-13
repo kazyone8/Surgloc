@@ -1207,25 +1207,26 @@ function buildMDT() {
         '<div class="div"></div>' +
         '<div class="slbl">Histopathology result — pTNM</div>' +
         '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
-          '<div class="fg"><label>pT stage</label><select id="mdt-pt"><option value="">Select</option><option>pT0</option><option>pT1</option><option>pT2</option><option>pT3</option><option>pT4a</option><option>pT4b</option></select></div>' +
-          '<div class="fg"><label>pN stage</label><select id="mdt-pn"><option value="">Select</option><option>pN0</option><option>pN1a</option><option>pN1b</option><option>pN1c</option><option>pN2a</option><option>pN2b</option></select></div>' +
-          '<div class="fg"><label>pM stage</label><select id="mdt-pm"><option value="">Select</option><option>pM0</option><option>pM1a</option><option>pM1b</option><option>pM1c</option></select></div>' +
+          '<div class="fg"><label>pT stage</label><select id="mdt-pt" onchange="checkAdjuvantFlag()"><option value="">Select</option><option>pT0</option><option>pT1</option><option>pT2</option><option>pT3</option><option>pT4a</option><option>pT4b</option></select></div>' +
+          '<div class="fg"><label>pN stage</label><select id="mdt-pn" onchange="checkAdjuvantFlag()"><option value="">Select</option><option>pN0</option><option>pN1a</option><option>pN1b</option><option>pN1c</option><option>pN2a</option><option>pN2b</option></select></div>' +
+          '<div class="fg"><label>pM stage</label><select id="mdt-pm" onchange="checkAdjuvantFlag()"><option value="">Select</option><option>pM0</option><option>pM1a</option><option>pM1b</option><option>pM1c</option></select></div>' +
         '</div>' +
         '<div class="fr">' +
-          '<div class="fg"><label>Resection margin (R)</label><select id="mdt-rmargin" onchange="onRmargin(this.value)"><option value="">Select</option><option value="R0">R0 — clear margins (\u22651mm)</option><option value="R1">R1 — involved (&lt;1mm)</option><option value="R2">R2 — macroscopic residual</option></select></div>' +
-          '<div class="fg"><label>Nodes retrieved</label><input type="number" id="mdt-nodes-retrieved" placeholder="e.g. 18" min="0"></div>' +
+          '<div class="fg"><label>Resection margin (R)</label><select id="mdt-rmargin" onchange="onRmargin(this.value);checkAdjuvantFlag()"><option value="">Select</option><option value="R0">R0 — clear margins (\u22651mm)</option><option value="R1">R1 — involved (&lt;1mm)</option><option value="R2">R2 — macroscopic residual</option></select></div>' +
+          '<div class="fg"><label>Nodes retrieved</label><input type="number" id="mdt-nodes-retrieved" placeholder="e.g. 18" min="0" oninput="checkAdjuvantFlag()"></div>' +
         '</div>' +
         '<div class="fr">' +
-          '<div class="fg"><label>Lymphovascular invasion</label><select id="mdt-lvi"><option value="">Select</option><option>Absent</option><option>Present</option></select></div>' +
-          '<div class="fg"><label>Perineural invasion</label><select id="mdt-pni"><option value="">Select</option><option>Absent</option><option>Present</option></select></div>' +
+          '<div class="fg"><label>Lymphovascular invasion</label><select id="mdt-lvi" onchange="checkAdjuvantFlag()"><option value="">Select</option><option>Absent</option><option>Present</option></select></div>' +
+          '<div class="fg"><label>Perineural invasion</label><select id="mdt-pni" onchange="checkAdjuvantFlag()"><option value="">Select</option><option>Absent</option><option>Present</option></select></div>' +
         '</div>' +
         '<div id="histo-flag"></div>' +
+        '<div id="adjuvant-flag" style="margin:8px 0;"></div>' +
         '<div class="div"></div>' +
         '<div class="slbl">Histology & Molecular Markers</div>' +
         '<div class="flag flag-a" style="margin-bottom:10px;"><div class="fi">\u23f3</div><div class="fb"><div class="ft">From formal pathology report</div><p>Grade, MSI/MMR and molecular markers from the histopathology report. Complete once report is available.</p></div></div>' +
         '<div class="fr">' +
-          '<div class="fg"><label>Tumour grade</label><select id="dx-grade"><option value="">Pending pathology</option><option>G1 \u2014 Well differentiated</option><option>G2 \u2014 Moderately differentiated</option><option>G3 \u2014 Poorly differentiated</option></select></div>' +
-          '<div class="fg"><label>MSI / MMR status</label><select id="dx-msi" onchange="checkMSI(this.value)"><option value="">Pending</option><option>MSS \u2014 stable</option><option>MSI-H / dMMR</option><option>pMMR</option></select></div>' +
+          '<div class="fg"><label>Tumour grade</label><select id="dx-grade" onchange="checkAdjuvantFlag()"><option value="">Pending pathology</option><option value="G1">G1 \u2014 Well differentiated</option><option value="G2">G2 \u2014 Moderately differentiated</option><option value="G3">G3 \u2014 Poorly differentiated</option></select></div>' +
+          '<div class="fg"><label>MSI / MMR status</label><select id="dx-msi" onchange="checkMSI(this.value);checkAdjuvantFlag()"><option value="">Pending</option><option value="MSS">MSS \u2014 stable</option><option value="MSI-H">MSI-H / dMMR</option><option value="pMMR">pMMR</option></select></div>' +
         '</div>' +
         '<div class="fr">' +
           '<div class="fg"><label>RAS / BRAF</label><select id="dx-ras"><option value="">Pending</option><option>KRAS wild-type</option><option>KRAS mutated</option><option>BRAF V600E</option><option>All-RAS wild-type</option></select></div>' +
@@ -1337,6 +1338,185 @@ function updateProcLabel() {
   if (hidden) hidden.value = selected.join(' + ');
 }
 
+function checkAdjuvantFlag() {
+  var pt    = document.getElementById('mdt-pt')    ? document.getElementById('mdt-pt').value    : '';
+  var pn    = document.getElementById('mdt-pn')    ? document.getElementById('mdt-pn').value    : '';
+  var pm    = document.getElementById('mdt-pm')    ? document.getElementById('mdt-pm').value    : '';
+  var lvi   = document.getElementById('mdt-lvi')   ? document.getElementById('mdt-lvi').value   : '';
+  var pni   = document.getElementById('mdt-pni')   ? document.getElementById('mdt-pni').value   : '';
+  var grade = document.getElementById('dx-grade')  ? document.getElementById('dx-grade').value  : '';
+  var msi   = document.getElementById('dx-msi')    ? document.getElementById('dx-msi').value    : '';
+  var nodes = document.getElementById('mdt-nodes-retrieved') ? parseInt(document.getElementById('mdt-nodes-retrieved').value) : NaN;
+  var rm    = document.getElementById('mdt-rmargin') ? document.getElementById('mdt-rmargin').value : '';
+  var f     = document.getElementById('adjuvant-flag');
+  if (!f || !pt || !pn) return;
+
+  var isN0   = pn === 'pN0';
+  var isN1   = pn === 'pN1a' || pn === 'pN1b' || pn === 'pN1c';
+  var isN2   = pn === 'pN2a' || pn === 'pN2b';
+  var isNpos = isN1 || isN2;
+  var isT3   = pt === 'pT3';
+  var isT4   = pt === 'pT4a' || pt === 'pT4b';
+  var isM1   = pm && pm !== 'pM0';
+  var isR1   = rm === 'R1';
+  var isR2   = rm === 'R2';
+  var isMSIH = msi === 'MSI-H';
+  var isMSS  = msi === 'MSS' || msi === 'pMMR';
+  var msiPending = !msi || msi === '';
+  var isG3   = grade === 'G3';
+  var hasLVI = lvi === 'Present';
+  var hasPNI = pni === 'Present';
+  var fewNodes = !isNaN(nodes) && nodes < 12;
+
+  // High-risk features for Stage II
+  var highRiskFeatures = [];
+  if (isG3)      highRiskFeatures.push('G3 poorly differentiated');
+  if (hasLVI)    highRiskFeatures.push('lymphovascular invasion');
+  if (hasPNI)    highRiskFeatures.push('perineural invasion');
+  if (isT4)      highRiskFeatures.push('pT4');
+  if (isR1)      highRiskFeatures.push('R1 margin');
+  if (fewNodes)  highRiskFeatures.push('<12 nodes retrieved');
+  var hasHighRisk = highRiskFeatures.length > 0;
+
+  // ── R2 — always flag first ────────────────────────────
+  if (isR2) {
+    f.innerHTML = flag('r','\ud83d\udea8','R2 resection — macroscopic residual disease','Urgent MDT re-discussion required regardless of T/N stage. Consider re-resection vs palliative intent. Oncology referral mandatory.');
+    return;
+  }
+
+  // ── STAGE IV ─────────────────────────────────────────
+  if (isM1) {
+    f.innerHTML = flag('r','\ud83d\udea8','Stage IV — metastatic disease',
+      'Palliative or curative-intent chemotherapy depending on resectability of metastases. Requires oncology MDT.\n\n' +
+      '\ud83e\uddec Mandatory molecular testing:\n' +
+      '\u2022 MSI / MMR status \u2014 if MSI-H: pembrolizumab (1st line)\n' +
+      '\u2022 KRAS / NRAS / BRAF \u2014 guides targeted therapy\n' +
+      '\u2022 HER2 amplification \u2014 if all-RAS wild-type'
+    );
+    return;
+  }
+
+  // ── STAGE III (N+) ────────────────────────────────────
+  if (isNpos) {
+    var ideaNote = isN1 ? 'Consider 3 months CAPOX (IDEA trial: non-inferior to 6 months for low-risk N1, less neurotoxicity).' : 'N2 disease: 6 months FOLFOX or CAPOX standard.';
+    if (isMSIH) {
+      f.innerHTML = flag('p','\ud83e\uddec','Stage III + MSI-H / dMMR \u2014 special considerations',
+        'Standard: FOLFOX or CAPOX adjuvant chemotherapy.\n\n' +
+        '\u26a0\ufe0f MSI-H NOTE: 5-FU monotherapy is NOT recommended (reduced benefit). FOLFOX is acceptable.\n' +
+        'Immunotherapy (pembrolizumab) not yet standard adjuvant \u2014 clinical trial if available.\n\n' +
+        '\ud83e\uddec Refer for germline testing \u2014 exclude Lynch syndrome.\n' +
+        ideaNote
+      );
+    } else {
+      f.innerHTML = flag('r','\u26d4','Stage III (pN+) \u2014 adjuvant chemotherapy indicated',
+        (isN2 ? 'pN2 disease \u2014 6 months FOLFOX or CAPOX.' : 'pN1 disease. ' + ideaNote) + '\n\n' +
+        '\u2705 Start within 8 weeks of surgery.\n' +
+        '\ud83d\udc89 Oncology referral now.\n' +
+        '\ud83e\uddec MSI / MMR status: ' + (isMSS ? 'MSS / pMMR \u2014 standard chemotherapy appropriate.' : 'Pending \u2014 confirm before starting.')
+      );
+    }
+    return;
+  }
+
+  // ── STAGE II T3N0 \u2014 THE KEY NUANCED CASE ─────────────
+  if (isT3 && isN0) {
+
+    // MSI-H: NO chemo regardless of risk features
+    if (isMSIH) {
+      f.innerHTML = flag('g','\u2705','pT3N0 + MSI-H / dMMR \u2014 adjuvant chemotherapy NOT recommended',
+        'MSI-H / dMMR Stage II tumours do NOT benefit from 5-FU based chemotherapy and may be harmed.\n\n' +
+        '\u2705 Surveillance alone is recommended.\n' +
+        '\ud83e\uddec Refer for germline testing \u2014 exclude Lynch syndrome.\n' +
+        'Confirm MSI status from formal pathology report before finalising plan.'
+      );
+      return;
+    }
+
+    // MSI pending + high risk features = hard stop
+    if (msiPending && hasHighRisk) {
+      f.innerHTML = flag('r','\u26d4','pT3N0 + high-risk features \u2014 MSI / MMR result required before any decision',
+        'High-risk features: ' + highRiskFeatures.join(', ') + '.\n\n' +
+        '\u26d4 DO NOT commence adjuvant chemotherapy until MSI / MMR status is confirmed.\n\n' +
+        'Why it matters:\n' +
+        '\u2022 MSI-H / dMMR \u2192 chemotherapy NOT recommended (may cause harm)\n' +
+        '\u2022 MSS / pMMR \u2192 consider FOLFOX or CAPOX at MDT\n\n' +
+        'Action: chase pathology for MSI / MMR IHC result urgently.'
+      );
+      return;
+    }
+
+    // MSS/pMMR + high risk features = consider chemo
+    if (isMSS && hasHighRisk) {
+      f.innerHTML = flag('a','\u26a0\ufe0f','Borderline Stage II pT3N0 \u2014 MSS/pMMR + high-risk features',
+        'High-risk features: ' + highRiskFeatures.join(', ') + '.\n\n' +
+        'MSS / pMMR confirmed \u2014 chemotherapy may be considered:\n' +
+        '\u2022 Absolute survival benefit is modest (~3\u20135%)\n' +
+        '\u2022 Discuss risk vs benefit clearly with patient\n' +
+        '\u2022 If benefit favoured: CAPOX or FOLFOX\n' +
+        '\u2022 5-FU monotherapy acceptable if oxaliplatin not tolerated\n\n' +
+        '\ud83d\udc89 Oncology referral for shared decision-making.\n' +
+        '\u23f1 Start within 8 weeks of surgery if proceeding.'
+      );
+      return;
+    }
+
+    // No high-risk features
+    if (!hasHighRisk) {
+      f.innerHTML = flag('g','\u2705','Stage II pT3N0 \u2014 low-risk, no adjuvant therapy indicated',
+        'No high-risk features identified. Surveillance alone is standard.\n\n' +
+        (msiPending ? '\u26a0\ufe0f MSI / MMR result still pending \u2014 confirm for completeness.\n\n' : '\u2705 MSI / MMR: ' + msi + '.\n\n') +
+        'Ensure follow-up CEA and colonoscopy schedule is documented.'
+      );
+      return;
+    }
+  }
+
+  // ── STAGE II T4N0 ─────────────────────────────────────
+  if (isT4 && isN0) {
+    if (isMSIH) {
+      f.innerHTML = flag('a','\u26a0\ufe0f','pT4N0 + MSI-H \u2014 adjuvant chemotherapy recommended',
+        'Our unit offers adjuvant chemotherapy for all pT4 regardless of MSI status.\n\n' +
+        'Recommend FOLFOX or CAPOX.\n\n' +
+        '\u26a0\ufe0f MSI-H note: evidence for 5-FU benefit in MSI-H Stage II is limited. pT4 local biology justifies treatment despite this uncertainty \u2014 document discussion with patient.\n\n' +
+        '\ud83e\uddec Refer for germline testing \u2014 exclude Lynch syndrome.\n' +
+        '\ud83d\udc89 Oncology referral. Start within 8 weeks of surgery.'
+      );
+    } else if (msiPending) {
+      f.innerHTML = flag('a','\u26a0\ufe0f','pT4N0 \u2014 adjuvant chemotherapy recommended \u2014 confirm MSI status',
+        'Our unit offers adjuvant chemotherapy for all pT4.\n\n' +
+        'Recommend FOLFOX or CAPOX.\n\n' +
+        '\ud83d\udd2c MSI / MMR result still pending \u2014 confirm for completeness and documentation.\n' +
+        '\ud83d\udc89 Oncology referral. Start within 8 weeks of surgery.'
+      );
+    } else {
+      f.innerHTML = flag('r','\u26d4','pT4N0 \u2014 adjuvant chemotherapy indicated',
+        'pT4 disease \u2014 our unit offers adjuvant chemotherapy for all pT4.\n\n' +
+        'Recommend FOLFOX or CAPOX.\n' +
+        (isR1 ? '\u26a0\ufe0f R1 margin also present \u2014 discuss re-resection vs adjuvant at MDT.\n' : '') +
+        '\ud83d\udc89 Oncology referral. Start within 8 weeks of surgery.'
+      );
+    }
+    return;
+  }
+
+  // ── STAGE I (T1-2 N0) ─────────────────────────────────
+  if ((pt === 'pT1' || pt === 'pT2') && isN0) {
+    f.innerHTML = flag('g','\u2705','Stage I (pT1-2 N0) \u2014 no adjuvant therapy indicated',
+      'Early stage disease. Surveillance only.\n' +
+      (isR1 ? '\u26a0\ufe0f R1 margin noted \u2014 discuss re-resection at MDT.\n' : '') +
+      'Ensure CEA and colonoscopy follow-up schedule is documented.'
+    );
+    return;
+  }
+
+  // ── R1 margin, N0, not captured above ─────────────────
+  if (isR1 && isN0) {
+    f.innerHTML = flag('r','\ud83d\udea8','R1 margin \u2014 MDT re-discussion required',
+      'Involved margin regardless of T stage. Discuss re-resection vs adjuvant therapy. Oncology referral mandatory.'
+    );
+  }
+}
+
 function checkDiagDelay() {
   var n   = parseInt(document.getElementById('p-dur-n') ? document.getElementById('p-dur-n').value : '');
   var u   = document.getElementById('p-dur-u') ? document.getElementById('p-dur-u').value : 'Months';
@@ -1382,6 +1562,121 @@ function checkAbxStewardship() {
 function checkAbxNoSource() {
   var f = document.getElementById('abx-flag');
   if (f) f.innerHTML = flag('r','\ud83d\udea8','No source identified \u2014 stop IV antibiotics now','No clinical or biochemical evidence of infection. Continuing IV antibiotics without documented source is not acceptable. Stop now and document: \u201cNo active infection identified. IV antibiotics discontinued.\u201d');
+}
+
+function renderErasTracker() {
+  var surgEl  = document.getElementById('eras-surg-date');
+  var todayEl = document.getElementById('eras-today-date');
+  var grid    = document.getElementById('eras-tracker-grid');
+  if (!grid) return;
+
+  // Auto-fill today if not set
+  if (todayEl && !todayEl.value) {
+    var now = new Date();
+    todayEl.value = now.toISOString().split('T')[0];
+  }
+
+  if (!surgEl || !surgEl.value) {
+    grid.innerHTML = '<div style="font-size:12px;color:var(--hint);text-align:center;padding:8px;">Enter surgery date to generate tracker</div>';
+    return;
+  }
+
+  var surg  = new Date(surgEl.value);  surg.setHours(0,0,0,0);
+  var today = new Date(todayEl ? todayEl.value : new Date().toISOString().split('T')[0]); today.setHours(0,0,0,0);
+  var currentPOD = Math.round((today - surg) / (1000*60*60*24));
+
+  // ERAS milestones: { label, icon, expectedPOD, achieved: bool, achievedPOD }
+  var milestones = [
+    { label:'Oral fluids commenced',       icon:'\ud83e\udd64', expectedPOD:0,  id:'ms-fluids'  },
+    { label:'Catheter removed',            icon:'\ud83d\udd35', expectedPOD:1,  id:'ms-cath'    },
+    { label:'Sit out of bed \u22652h',     icon:'\ud83e\uddd8', expectedPOD:1,  id:'ms-sitout'  },
+    { label:'Light diet tolerated',        icon:'\ud83c\udf7d\ufe0f', expectedPOD:2, id:'ms-diet' },
+    { label:'Walk independently',          icon:'\ud83d\udeb6', expectedPOD:2,  id:'ms-walk'    },
+    { label:'IV antibiotics stopped',      icon:'\ud83e\udda0', expectedPOD:2,  id:'ms-abx'     },
+    { label:'Normal diet tolerated',       icon:'\ud83c\udf71', expectedPOD:3,  id:'ms-normaldiet' },
+    { label:'Pain on oral analgesia only', icon:'\ud83d\udc8a', expectedPOD:3,  id:'ms-pain'    },
+    { label:'Drain removed',               icon:'\ud83d\udca7', expectedPOD:3,  id:'ms-drain'   },
+    { label:'Stoma education complete',    icon:'\ud83d\udcd6', expectedPOD:4,  id:'ms-stoma'   },
+    { label:'Discharge ready',             icon:'\ud83c\udfe0', expectedPOD:4,  id:'ms-dc'      },
+  ];
+
+  // Read stored achieved state
+  if (!window.erasAchieved) window.erasAchieved = {};
+
+  var html = '<div style="display:grid;gap:6px;">';
+
+  milestones.forEach(function(ms) {
+    var achieved   = !!window.erasAchieved[ms.id];
+    var achievedPOD = window.erasAchieved[ms.id + '_pod'];
+    var isDue      = currentPOD >= ms.expectedPOD;
+    var isOverdue  = isDue && !achieved && currentPOD > ms.expectedPOD;
+    var daysLate   = achieved && achievedPOD !== undefined ? (achievedPOD - ms.expectedPOD) : (currentPOD - ms.expectedPOD);
+
+    var statusColor, statusIcon, statusText;
+    if (achieved) {
+      if (achievedPOD <= ms.expectedPOD) {
+        statusColor = 'var(--green)'; statusIcon = '\u2705';
+        statusText  = 'Achieved POD ' + achievedPOD + (achievedPOD === ms.expectedPOD ? ' \u2014 on time' : ' \u2014 early');
+      } else {
+        statusColor = 'var(--amber)'; statusIcon = '\u26a0\ufe0f';
+        statusText  = 'Achieved POD ' + achievedPOD + ' \u2014 ' + (achievedPOD - ms.expectedPOD) + ' day(s) late';
+      }
+    } else if (isOverdue) {
+      statusColor = 'var(--red)'; statusIcon = '\ud83d\udea8';
+      statusText  = 'Overdue \u2014 expected POD ' + ms.expectedPOD + ', now POD ' + currentPOD;
+    } else if (isDue) {
+      statusColor = 'var(--blue)'; statusIcon = '\u23f3';
+      statusText  = 'Due today (POD ' + ms.expectedPOD + ')';
+    } else {
+      statusColor = 'var(--hint)'; statusIcon = '\u25cb';
+      statusText  = 'Expected POD ' + ms.expectedPOD + ' (' + (ms.expectedPOD - currentPOD) + ' day(s) away)';
+    }
+
+    html +=
+      '<div style="display:grid;grid-template-columns:24px 1fr auto auto;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--rs);background:var(--sf2);border:1px solid ' + (isOverdue && !achieved ? 'var(--red-b)' : 'var(--bd)') + ';">' +
+        '<span style="font-size:16px;">' + ms.icon + '</span>' +
+        '<div>' +
+          '<div style="font-size:12px;font-weight:600;color:#e2e8f0;">' + ms.label + '</div>' +
+          '<div style="font-size:11px;color:' + statusColor + ';">' + statusIcon + ' ' + statusText + '</div>' +
+        '</div>' +
+        '<div style="font-size:10px;color:var(--hint);text-align:center;">POD<br><b style="color:var(--muted);">' + ms.expectedPOD + '</b></div>' +
+        '<button onclick="toggleErasMilestone(\'' + ms.id + '\',' + currentPOD + ')" style="padding:4px 10px;border-radius:20px;border:1px solid ' + (achieved ? 'var(--green-b)' : 'var(--bd)') + ';background:' + (achieved ? 'var(--green-l)' : 'transparent') + ';color:' + (achieved ? 'var(--green)' : 'var(--hint)') + ';font-size:11px;cursor:pointer;white-space:nowrap;">' +
+          (achieved ? '\u2705 Done' : 'Mark done') +
+        '</button>' +
+      '</div>';
+  });
+
+  html += '</div>';
+
+  // Summary bar
+  var doneCount    = milestones.filter(function(m) { return !!window.erasAchieved[m.id]; }).length;
+  var overdueCount = milestones.filter(function(m) { return !window.erasAchieved[m.id] && currentPOD > m.expectedPOD; }).length;
+  var pct = Math.round(doneCount / milestones.length * 100);
+  var barColor = overdueCount > 0 ? 'var(--red)' : pct === 100 ? 'var(--green)' : 'var(--blue)';
+
+  var summary = '<div style="margin-bottom:10px;">' +
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--hint);margin-bottom:4px;">' +
+      '<span>ERAS progress \u2014 POD ' + currentPOD + '</span>' +
+      '<span style="color:' + barColor + ';font-weight:700;">' + doneCount + ' / ' + milestones.length + ' milestones' + (overdueCount > 0 ? ' \u2014 \ud83d\udea8 ' + overdueCount + ' overdue' : '') + '</span>' +
+    '</div>' +
+    '<div style="height:6px;border-radius:3px;background:var(--sf2);overflow:hidden;">' +
+      '<div style="height:100%;width:' + pct + '%;background:' + barColor + ';border-radius:3px;transition:width .3s;"></div>' +
+    '</div>' +
+  '</div>';
+
+  grid.innerHTML = summary + html;
+}
+
+function toggleErasMilestone(id, currentPOD) {
+  if (!window.erasAchieved) window.erasAchieved = {};
+  if (window.erasAchieved[id]) {
+    delete window.erasAchieved[id];
+    delete window.erasAchieved[id + '_pod'];
+  } else {
+    window.erasAchieved[id] = true;
+    window.erasAchieved[id + '_pod'] = currentPOD;
+  }
+  renderErasTracker();
 }
 
 function calcWeeksToSurg() {
@@ -2020,7 +2315,14 @@ function buildPostop() {
       '<div id="wr-checklist" style="margin-top:8px;"></div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-r">\ud83d\udd2c</div><div><div class="ct">FBC & CRP tracking</div><div class="cs">Enter daily results \u2014 rising CRP auto-flagged</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-g">\u23f1\ufe0f</div><div><div class="ct">ERAS milestone tracker</div><div class="cs">Expected vs actual — deviations auto-flagged</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="cb">' +
+      '<div class="fr" style="margin-bottom:10px;">' +
+        '<div class="fg"><label>Surgery date</label><input type="date" id="eras-surg-date" oninput="renderErasTracker()"></div>' +
+        '<div class="fg"><label>Today\'s date</label><input type="date" id="eras-today-date" oninput="renderErasTracker()"></div>' +
+      '</div>' +
+      '<div id="eras-tracker-grid"></div>' +
+    '</div></div>' +
     '<div class="cb">' +
       '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
         '<div class="fg"><label>POD</label><select id="lab-pod"><option>POD 0</option><option>POD 1</option><option selected>POD 2</option><option>POD 3</option><option>POD 4</option><option>POD 5</option><option>POD 6</option><option>POD 7</option></select></div>' +
