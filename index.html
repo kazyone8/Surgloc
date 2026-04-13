@@ -329,8 +329,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0);cursor:poin
     <div class="pilot">&#x2697; PILOT &#8212; Anonymous data</div>
   </div>
   <div class="user-bar" onclick="openUserModal()">
-    <div class="ua" id="ua" style="background:var(--blue-l);color:var(--blue);">CR</div>
-    <div style="flex:1;min-width:0;"><div class="un" id="un">Dr Consultant</div><div class="ur" id="ur">Colorectal Surgeon</div></div>
+    <div class="ua" id="ua" style="background:#2563eb22;color:#2563eb;">WKY</div>
+    <div style="flex:1;min-width:0;"><div class="un" id="un">Dr WKY</div><div class="ur" id="ur">Colorectal Surgeon</div></div>
     <div style="color:var(--hint);font-size:11px;">&#8964;</div>
   </div>
   <div class="pt-ctx" id="pt-ctx" onclick="go('journey')">
@@ -488,6 +488,19 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0);cursor:poin
   <div class="mo-box">
     <div class="mo-title">New case</div>
     <div class="mo-sub">Anonymous &#8212; no patient names or IDs</div>
+
+    <div class="fg">
+      <label>Consultant in charge <span class="req">*</span></label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;" id="nc-consultant-grp">
+        <div class="chip" onclick="selectConsultant(this,'Dr WKY','wky','#2563eb')">WKY</div>
+        <div class="chip" onclick="selectConsultant(this,'Dr HKY','hky','#0d9488')">HKY</div>
+        <div class="chip" onclick="selectConsultant(this,'Dr LHM','lhm','#7c3aed')">LHM</div>
+        <div class="chip" onclick="selectConsultant(this,'Dr TMN','tmn','#d97706')">TMN</div>
+        <div class="chip" onclick="selectConsultant(this,'Dr TGS','tgs','#dc2626')">TGS</div>
+        <div class="chip" onclick="selectConsultant(this,'Dr CS','cs','#16a34a')">CS</div>
+      </div>
+    </div>
+
     <div class="fg">
       <label>Procedure <span class="req">*</span></label>
       <select id="nc-proc" onchange="genID()">
@@ -521,9 +534,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0);cursor:poin
       <div class="fg"><label>Diagnosis date</label><input type="date" id="nc-dx"></div>
     </div>
     <div class="fg"><label>TNM stage (if known)</label><input type="text" id="nc-tnm" placeholder="e.g. T3 N1 M0"></div>
-    <div class="fg"><label>Logged by</label>
-      <select id="nc-surgeon"><option value="">Select</option><option>Dr Consultant</option><option>Dr Colleague</option><option>Dr Registrar</option><option>Dr Medical Officer</option><option>Dr House Officer</option></select>
-    </div>
     <div class="mo-actions">
       <button class="btn" onclick="closeMo('mo-new')">Cancel</button>
       <button class="btn btn-p" onclick="createCase()" style="flex:1;">Create case &#8594;</button>
@@ -534,10 +544,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0);cursor:poin
 <!-- USER MODAL -->
 <div class="mo" id="mo-user" style="display:none;">
   <div class="mo-box" style="max-width:360px;">
-    <div class="mo-title">Switch user</div>
-    <div class="mo-sub">Select who is currently using the app</div>
+    <div class="mo-title">Who are you?</div>
+    <div class="mo-sub">Select your name to continue</div>
     <div id="user-list"></div>
-    <div class="mo-actions"><button class="btn btn-p" onclick="closeMo('mo-user')" style="flex:1;">Done</button></div>
   </div>
 </div>
 
@@ -573,11 +582,15 @@ function toggle(id) {
 // ═══════════════════════════════════════
 
 const USERS = [
-  {id:'consultant', name:'Dr Consultant',       role:'Colorectal Surgeon',  ini:'CR', col:'#3b82f6'},
-  {id:'colleague',  name:'Dr Colleague',        role:'Colorectal Surgeon',  ini:'CO', col:'#14b8a6'},
-  {id:'reg',        name:'Dr Registrar',        role:'Surgical Registrar',  ini:'SR', col:'#a78bfa'},
-  {id:'mo',         name:'Dr Medical Officer',  role:'Medical Officer',     ini:'MO', col:'#f59e0b'},
-  {id:'ho',         name:'Dr House Officer',    role:'House Officer',       ini:'HO', col:'#f97316'},
+  {id:'wky', name:'Dr WKY', role:'Colorectal Surgeon', ini:'WKY', col:'#2563eb'},
+  {id:'hky', name:'Dr HKY', role:'Colorectal Surgeon', ini:'HKY', col:'#0d9488'},
+  {id:'lhm', name:'Dr LHM', role:'Colorectal Surgeon', ini:'LHM', col:'#7c3aed'},
+  {id:'tmn', name:'Dr TMN', role:'Colorectal Surgeon', ini:'TMN', col:'#d97706'},
+  {id:'tgs', name:'Dr TGS', role:'Colorectal Surgeon', ini:'TGS', col:'#dc2626'},
+  {id:'cs',  name:'Dr CS',  role:'Colorectal Surgeon', ini:'CS',  col:'#16a34a'},
+  {id:'reg', name:'Registrar',       role:'Surgical Registrar', ini:'SR', col:'#a78bfa'},
+  {id:'mo',  name:'Medical Officer', role:'Medical Officer',    ini:'MO', col:'#ea580c'},
+  {id:'ho',  name:'House Officer',   role:'House Officer',      ini:'HO', col:'#64748b'},
 ];
 let curUser = USERS[0];
 let cases = [];
@@ -706,17 +719,18 @@ function caseCardHTML(c) {
     '<div class="cc-info">' +
       '<div class="cc-id" style="color:' + c.color + ';">' + c.id + '</div>' +
       '<div class="cc-proc">' + c.procLabel + '</div>' +
-      '<div class="cc-meta">' + c.age + (c.sex ? c.sex[0] : '') + ' \u00b7 ' + (c.site||'\u2014') + ' \u00b7 ' + (c.tnm||'TNM pending') + ' \u00b7 ' + (c.surgeon||'\u2014') + '</div>' +
+      '<div class="cc-meta">' + (c.age||'\u2014') + (c.sex ? c.sex[0] : '') + ' \u00b7 ' + (c.site||'\u2014') + ' \u00b7 ' + (c.tnm||'TNM pending') + ' \u00b7 ' + (c.surgeon||'\u2014') + '</div>' +
     '</div>' +
     '<div style="display:flex;gap:7px;align-items:center;flex-shrink:0;">' +
       '<span class="sb-badge sb-' + c.status + '">' + statusLabel + '</span>' +
-      '<button onclick="event.stopPropagation();archiveCase(\'' + c.id + '\')" title="Archive case" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--bd2);background:var(--sf);color:var(--hint);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;" onmouseover="this.style.borderColor=\'var(--red-b)\';this.style.color=\'var(--red)\';this.style.background=\'var(--red-l)\'" onmouseout="this.style.borderColor=\'var(--bd2)\';this.style.color=\'var(--hint)\';this.style.background=\'var(--sf)\'">\ud83d\uddd1</button>' +
+      (isConsultant() ? '<button onclick="event.stopPropagation();archiveCase(\'' + c.id + '\')" title="Archive case" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--bd2);background:var(--sf);color:var(--hint);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;" onmouseover="this.style.borderColor=\'var(--red-b)\';this.style.color=\'var(--red)\';this.style.background=\'var(--red-l)\'" onmouseout="this.style.borderColor=\'var(--bd2)\';this.style.color=\'var(--hint)\';this.style.background=\'var(--sf)\'">\ud83d\uddd1</button>' : '') +
     '</div>' +
   '</div>';
 }
 
 // ═══ ARCHIVE / RESTORE ═══
 function archiveCase(id) {
+  if (!enforceDeleteAuth()) return;
   var c = cases.find(function(x) { return x.id === id; });
   if (!c) return;
   c.deleted = true;
@@ -784,7 +798,7 @@ function renderJourney() {
       '<div style="flex:1;min-width:0;">' +
         '<div style="font-size:18px;font-weight:800;font-family:var(--mono);color:' + c.color + ';">' + c.id + '</div>' +
         '<div style="font-size:12px;color:var(--muted);margin-top:2px;">' + c.procLabel + ' \u00b7 ' + (c.site||'Site TBC') + '</div>' +
-        '<div style="font-size:11px;color:var(--hint);margin-top:1px;">' + (c.tnm||'TNM pending') + ' \u00b7 ' + c.age + (c.sex?c.sex[0]:'') + ' \u00b7 Dx: ' + (c.dxDate ? new Date(c.dxDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '\u2014') + '</div>' +
+        '<div style="font-size:11px;color:var(--hint);margin-top:1px;">' + (c.tnm||'TNM pending') + ' \u00b7 ' + (c.age||'\u2014') + (c.sex?c.sex[0]:'') + ' \u00b7 Dx: ' + (c.dxDate ? new Date(c.dxDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '\u2014') + '</div>' +
       '</div>' +
       '<button class="btn btn-p" onclick="go(\'cases\')">&#8592; Cases</button>' +
     '</div>';
@@ -949,6 +963,8 @@ function loadMod(mod) {
   if (mod === 'postop')       initPostop();
   // Attach autosave to the freshly rendered module
   setTimeout(setupAutosave, 100);
+  // Enforce read-only access after render + restore
+  setTimeout(function() { enforceReadOnly(mod); }, 150);
 }
 
 function D()  { return curCase.data = curCase.data || {}; }
@@ -1855,6 +1871,78 @@ function toggleErasMilestone(id, currentPOD) {
     window.erasAchieved[id + '_pod'] = currentPOD;
   }
   renderErasTracker();
+}
+
+// ═══════════════════════════════════════
+// AUTHORIZATION
+// ═══════════════════════════════════════
+var ROLE_CONSULTANT = ['wky','hky','lhm','tmn','tgs','cs'];
+var ROLE_REGISTRAR  = ['reg','mo'];  // MO same as registrar
+var ROLE_HO         = ['ho'];
+
+function isConsultant() { return ROLE_CONSULTANT.indexOf(curUser.id) > -1; }
+function isRegistrarPlus() { return isConsultant() || ROLE_REGISTRAR.indexOf(curUser.id) > -1; }
+
+// Returns 'edit', 'readonly', or 'locked' for a given module
+function modAccess(mod) {
+  if (isConsultant()) return 'edit';
+  if (ROLE_REGISTRAR.indexOf(curUser.id) > -1) {
+    // Reg / MO: read-only on surgery
+    if (mod === 'surgery') return 'readonly';
+    return 'edit';
+  }
+  if (ROLE_HO.indexOf(curUser.id) > -1) {
+    // HO: edit presentation + postop only
+    if (mod === 'presentation' || mod === 'postop') return 'edit';
+    return 'readonly';
+  }
+  return 'readonly';
+}
+
+function enforceReadOnly(mod) {
+  if (modAccess(mod) !== 'readonly') return;
+  // Disable all inputs, selects, textareas, buttons in mod-body
+  var body = document.getElementById('mod-body');
+  if (!body) return;
+  body.querySelectorAll('input,select,textarea').forEach(function(el) {
+    el.disabled = true;
+    el.style.opacity = '0.6';
+    el.style.cursor = 'not-allowed';
+  });
+  body.querySelectorAll('button:not(.read-only-exempt)').forEach(function(el) {
+    el.disabled = true;
+    el.style.opacity = '0.5';
+    el.style.cursor = 'not-allowed';
+  });
+  body.querySelectorAll('.chip,.opt').forEach(function(el) {
+    el.style.pointerEvents = 'none';
+    el.style.opacity = '0.6';
+  });
+  // Show read-only banner
+  var banner = document.createElement('div');
+  banner.id = 'readonly-banner';
+  banner.style.cssText = 'position:sticky;top:0;z-index:20;padding:8px 14px;background:var(--amber-l);border-bottom:1px solid var(--amber-b);display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--amber);';
+  banner.innerHTML = '\ud83d\udd12 Read only \u2014 ' + curUser.ini + ' does not have edit access to this module. Contact a consultant or registrar.';
+  body.insertBefore(banner, body.firstChild);
+  // Hide save button
+  var saveBtn = document.querySelector('.mod-tb .btn-p');
+  if (saveBtn) { saveBtn.style.display = 'none'; }
+}
+
+function enforceNewCaseAuth() {
+  if (!isConsultant()) {
+    toast('\ud83d\udd12 Only consultants can create new cases');
+    return false;
+  }
+  return true;
+}
+
+function enforceDeleteAuth() {
+  if (!isConsultant()) {
+    toast('\ud83d\udd12 Only consultants can delete cases');
+    return false;
+  }
+  return true;
 }
 
 function calcWeeksToSurg() {
@@ -3858,11 +3946,34 @@ function genID() {
 }
 
 function openNewCase() {
+  if (!enforceNewCaseAuth()) return;
   document.getElementById('mo-new').style.display = 'flex';
   var procEl = document.getElementById('nc-proc');
   if (procEl) procEl.value = '';
   var prevEl = document.getElementById('nc-id-prev');
   if (prevEl) { prevEl.textContent = 'Select procedure first'; prevEl.removeAttribute('data-id'); }
+  // Pre-select current user's consultant chip
+  document.querySelectorAll('#nc-consultant-grp .chip').forEach(function(c) {
+    c.classList.remove('on'); c.style.background = ''; c.style.color = ''; c.style.borderColor = '';
+    if (c.textContent.trim() === curUser.ini) {
+      c.classList.add('on');
+      c.style.background = curUser.col + '22';
+      c.style.color = curUser.col;
+      c.style.borderColor = curUser.col;
+    }
+  });
+}
+
+function selectConsultant(el, name, id, col) {
+  document.querySelectorAll('#nc-consultant-grp .chip').forEach(function(c) {
+    c.classList.remove('on'); c.style.background = ''; c.style.color = ''; c.style.borderColor = '';
+  });
+  el.classList.add('on');
+  el.style.background = col + '22';
+  el.style.color = col;
+  el.style.borderColor = col;
+  var user = USERS.find(function(u) { return u.id === id; });
+  if (user) switchUser(user.id);
 }
 
 function createCase() {
@@ -3875,19 +3986,25 @@ function createCase() {
   if (!id) { toast('\u26a0 Select procedure to generate ID'); return; }
   var procSel = document.getElementById('nc-proc');
   var procLabel = procSel ? procSel.options[procSel.selectedIndex].text : proc;
+
+  // Get selected consultant
+  var selConsultant = document.querySelector('#nc-consultant-grp .chip.on');
+  var surgeon = selConsultant ? selConsultant.getAttribute('data-name') : curUser.name;
+  var surgeonCol = selConsultant ? selConsultant.getAttribute('data-col') : curUser.col;
+
   var newCase = {
     id: id,
     proc: proc,
     procLabel: procLabel,
     site: document.getElementById('nc-site') ? document.getElementById('nc-site').value : '',
-    age: age ? parseInt(age) : null,
+    age: age ? parseInt(age) : '',
     sex: sex || '',
     tnm: document.getElementById('nc-tnm') ? document.getElementById('nc-tnm').value : '',
     dxDate: dxDate || '',
-    surgeon: document.getElementById('nc-surgeon') ? document.getElementById('nc-surgeon').value : curUser.name,
+    surgeon: surgeon,
     status: 'preop',
     alert: false,
-    color: COLORS[cases.length % COLORS.length],
+    color: surgeonCol || COLORS[cases.length % COLORS.length],
     data: {},
     created: new Date().toISOString(),
   };
@@ -4118,10 +4235,10 @@ function openUserModal() {
   var el = document.getElementById('user-list');
   el.innerHTML = USERS.map(function(u) {
     var active = curUser.id === u.id;
-    return '<div onclick="switchUser(\'' + u.id + '\')" style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--rs);cursor:pointer;border:1px solid ' + (active?'var(--blue-b)':'var(--bd)') + ';background:' + (active?'var(--blue-l)':'var(--sf)') + ';margin-bottom:6px;transition:all .15s;">' +
-      '<div style="width:30px;height:30px;border-radius:50%;background:' + u.col + '22;color:' + u.col + ';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--mono);">' + u.ini + '</div>' +
-      '<div><div style="font-size:12.5px;font-weight:600;">' + u.name + '</div><div style="font-size:10.5px;color:var(--hint);">' + u.role + '</div></div>' +
-      (active ? '<span style="margin-left:auto;font-size:11px;color:var(--blue);">Active</span>' : '') +
+    return '<div onclick="switchUser(\'' + u.id + '\')" style="display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;border:1px solid ' + (active?'var(--blue-b)':'var(--bd)') + ';background:' + (active?'var(--blue-l)':'var(--sf)') + ';margin-bottom:6px;transition:all .15s;">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:' + u.col + '22;color:' + u.col + ';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:var(--mono);flex-shrink:0;">' + u.ini + '</div>' +
+      '<div style="flex:1;"><div style="font-size:13px;font-weight:600;">' + u.name + '</div><div style="font-size:11px;color:var(--hint);">' + u.role + '</div></div>' +
+      (active ? '<span style="font-size:11px;color:var(--blue);font-weight:700;">\u2713 You</span>' : '<span style="font-size:18px;color:var(--hint);">\u203a</span>') +
     '</div>';
   }).join('');
   document.getElementById('mo-user').style.display = 'flex';
@@ -4135,7 +4252,19 @@ function switchUser(id) {
   document.getElementById('un').textContent = curUser.name;
   document.getElementById('ur').textContent = curUser.role;
   closeMo('mo-user');
-  toast('Switched to: ' + curUser.name);
+  updateAuthUI();
+  toast('\u2705 Signed in as ' + curUser.name);
+}
+
+function updateAuthUI() {
+  // Show/hide New Case buttons based on role
+  document.querySelectorAll('.new-btn, .new-case-btn').forEach(function(btn) {
+    btn.style.display = isConsultant() ? '' : 'none';
+  });
+  // Re-render cases list to show/hide delete buttons
+  if (typeof renderCases === 'function') renderCases();
+  // If a module is open, re-enforce read-only
+  if (curMod) setTimeout(function() { enforceReadOnly(curMod); }, 100);
 }
 
 // ═══════════════════════════════════════
@@ -4382,7 +4511,7 @@ function mergeCase(local, incoming) {
 
   // Merge top-level scalar fields — newer timestamp wins
   if (incoming.ts > (local._lastSync || 0)) {
-    var skip = ['id','created','color'];      // never overwrite identity fields
+    var skip = ['id','created','color','deleted'];      // never overwrite identity or deletion fields
     Object.keys(incoming.case).forEach(function(k) {
       if (skip.indexOf(k) === -1 && k !== 'data') merged[k] = incoming.case[k];
     });
@@ -4716,8 +4845,9 @@ document.getElementById('dash-date').textContent = new Date().toLocaleDateString
 document.getElementById('handover-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 renderDash();
 addSyncButtons();
-// Show saved status on load so user knows autosave is active
 if (cases.length) showAutosaveStatus('saved');
+// Show "Who are you?" on first open
+setTimeout(openUserModal, 300);
 
 </script>
 
