@@ -226,14 +226,86 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:poi
 .ev-badge{font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:20px;flex-shrink:0;}
 .result-item{display:flex;gap:10px;padding:7px 10px;border-radius:var(--rs);border:1px solid var(--bd);background:rgba(255,255,255,.02);margin-bottom:4px;font-size:12px;align-items:center;}
 @media(max-width:768px){
-  .sb{position:fixed;top:0;left:0;height:100vh;transform:translateX(-100%);z-index:50;}
+  /* Sidebar */
+  .sb{position:fixed;top:0;left:0;height:100vh;transform:translateX(-100%);z-index:50;width:82vw;max-width:300px;}
   .sb.open{transform:translateX(0);}
   .hbg{display:flex;}
+
+  /* Layout */
   .stat-grid{grid-template-columns:1fr 1fr;}
-  .page{padding:12px;}
+  .page{padding:10px;}
   .two-col{grid-template-columns:1fr;}
   .tnm-grid{grid-template-columns:1fr;}
+  .topbar{padding:0 12px;height:48px;}
+  .pg-sub{display:none;}
+
+  /* Cards */
+  .cb{padding:11px 12px;}
+  .ch{padding:10px 12px 9px;}
+  .ct{font-size:12.5px;}
+
+  /* Forms */
+  .fr,.fr3,.fr4{grid-template-columns:1fr;}
+  input,select,textarea{font-size:14px;padding:9px 11px;}
+  label{font-size:10px;}
+
+  /* Chips — bigger tap targets on mobile */
+  .chip{padding:7px 11px;font-size:12px;}
+  .opt{padding:7px 13px;font-size:12px;}
+
+  /* Buttons */
+  .btn{padding:10px 16px;font-size:13px;}
+  .new-btn{padding:11px;}
+
+  /* Ward round items */
+  .result-item{padding:8px 10px;}
+
+  /* Summary card — hide on mobile, show inline */
+  .two-col > div:last-child .card{margin-top:0;}
+
+  /* Topbar save button */
+  .tb-right .btn{padding:7px 12px;font-size:12px;}
+
+  /* Module content scroll */
+  .content{-webkit-overflow-scrolling:touch;}
+
+  /* Fix select dropdowns on iOS */
+  select{background-color:rgba(30,41,59,.98);}
+
+  /* Flags — readable on small screens */
+  .flag{padding:10px 12px;}
+  .fi{font-size:16px;}
+  .fb .ft{font-size:12px;}
+  .fb p{font-size:11.5px;}
+
+  /* Pre-op checklist panels */
+  .preop-panel-header{padding:10px 12px;}
+
+  /* Stat cards on dashboard */
+  .stat-card{padding:12px;}
+  .stat-val{font-size:22px;}
+
+  /* Journey nav pills — scrollable row */
+  .sec-nav{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
+  .sec-nav::-webkit-scrollbar{display:none;}
+
+  /* ERAS tracker grid */
+  #eras-tracker-grid > div > div{grid-template-columns:24px 1fr auto;}
+  #eras-tracker-grid > div > div > div:nth-child(3){display:none;}
 }
+/* Mobile bottom nav */
+#mob-bottom-nav{position:fixed;bottom:0;left:0;right:0;height:58px;background:rgba(11,18,33,.97);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-around;z-index:40;backdrop-filter:blur(16px);padding-bottom:env(safe-area-inset-bottom);}
+.mbn-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;color:var(--hint);cursor:pointer;padding:6px 0;font-family:var(--font);}
+.mbn-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.mbn-btn span{font-size:9.5px;font-weight:600;}
+.mbn-btn.active{color:var(--blue);}
+.mbn-center{width:44px;height:44px;background:var(--blue);border-radius:50% !important;color:white !important;flex:0 0 44px;margin:0 8px;}
+.mbn-center svg{width:20px;height:20px;}
+@media(max-width:768px){
+  #mob-bottom-nav{display:flex;}
+  .content{padding-bottom:68px;}
+}
+@media(min-width:769px){#mob-bottom-nav{display:none!important;}}
 ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--hint);border-radius:3px;}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:rgba(11,18,33,.96);color:var(--text);padding:8px 18px;border-radius:30px;font-size:12px;font-weight:500;z-index:999;transition:transform .3s ease;pointer-events:none;border:1px solid var(--bd2);backdrop-filter:blur(12px);white-space:nowrap;}
 .sec-nav{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px;}
@@ -3886,6 +3958,17 @@ function toggleSb() {
   document.getElementById('sb').classList.toggle('open');
   document.getElementById('ov').classList.toggle('show');
 }
+function closeMb() {
+  // Update bottom nav active state
+  var modMap = {presentation:0, diagnosis:1, preop:3, postop:4};
+  document.querySelectorAll('.mbn-btn').forEach(function(b,i) { b.classList.remove('active'); });
+  var cur = curMod || 'presentation';
+  if (modMap[cur] !== undefined) {
+    var btns = document.querySelectorAll('.mbn-btn');
+    if (btns[modMap[cur]]) btns[modMap[cur]].classList.add('active');
+  }
+}
+
 function closeSb() {
   if (window.innerWidth <= 768) {
     document.getElementById('sb').classList.remove('open');
@@ -4360,6 +4443,28 @@ if (cases.length) showAutosaveStatus('saved');
       <button class="btn btn-p" id="sync-import-btn" onclick="doImport()" disabled style="flex:1;">Import &amp; merge</button>
     </div>
   </div>
+</div>
+<!-- Mobile bottom nav -->
+<div id="mob-bottom-nav" style="display:none;">
+  <button class="mbn-btn" onclick="goMod('presentation');closeMb()">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Patient</span>
+  </button>
+  <button class="mbn-btn" onclick="goMod('diagnosis');closeMb()">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <span>Dx</span>
+  </button>
+  <button class="mbn-btn mbn-center" onclick="document.getElementById('mo-new').style.display='flex'">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+  <button class="mbn-btn" onclick="goMod('preop');closeMb()">
+    <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+    <span>Pre-op</span>
+  </button>
+  <button class="mbn-btn" onclick="goMod('postop');closeMb()">
+    <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    <span>Post-op</span>
+  </button>
 </div>
 
 </body>
