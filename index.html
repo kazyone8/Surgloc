@@ -2917,9 +2917,9 @@ function showWardRound(pod) {
   var abxOral      = !!document.querySelector('#abx-status-grp .sel-t');   // Switched to oral
   var abxRunning   = !!document.querySelector('#abx-status-grp .sel-r');   // ⚠️ IV running
 
-  // Mobilisation — check if today's POD logged with a positive result
+  // Mobilisation — any entry logged for this POD = done
   var mobDone = mobLog.some(function(m) {
-    return m.pod === pod && m.level && m.level.indexOf('\u2713') > -1;
+    return m.pod === pod && m.level && m.level !== 'Not mobilised \u2014 see reason';
   });
 
   var items = [];
@@ -3133,6 +3133,8 @@ function copyOneLiner(btn) {
   var text = btn.previousElementSibling.textContent;
   navigator.clipboard.writeText(text).then(function() { toast('\u2705 Copied to clipboard'); });
 }
+
+function refreshWardRound() {
   var activeBtn = document.querySelector('#wr-pod-grp .sel');
   if (activeBtn) showWardRound(activeBtn.textContent.trim());
 }
