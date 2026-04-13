@@ -310,6 +310,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:poi
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:rgba(11,18,33,.96);color:var(--text);padding:8px 18px;border-radius:30px;font-size:12px;font-weight:500;z-index:999;transition:transform .3s ease;pointer-events:none;border:1px solid var(--bd2);backdrop-filter:blur(12px);white-space:nowrap;}
 .sec-nav{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
 </head>
 <body>
 <div class="overlay" id="ov" onclick="closeSb()"></div>
@@ -437,6 +439,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:poi
     <!-- JOURNEY -->
     <div class="page" id="pg-journey">
       <div id="journey-header" style="border-radius:var(--r);padding:14px 16px;margin-bottom:14px;border:1px solid var(--blue-b);background:var(--blue-l);"></div>
+      <div id="journey-timeline" style="margin-bottom:14px;"></div>
       <div class="sec-nav" id="mod-nav"></div>
       <div class="mod-frame">
         <div class="mod-tb">
@@ -804,6 +807,105 @@ function renderJourney() {
   else {
     document.getElementById('mod-body').innerHTML = '<div class="empty" style="padding:30px 20px;"><div class="empty-icon">\u261d\ufe0f</div><div class="empty-sub">Tap a module above to begin entering data</div></div>';
   }
+
+  renderJourneyTimeline();
+}
+
+function renderJourneyTimeline() {
+  var el = document.getElementById('journey-timeline');
+  if (!el || !curCase) return;
+
+  var c = curCase;
+  var d = c.data || {};
+
+  // Pull key dates from saved module data
+  var dxDate    = c.dxDate || null;
+  var mdtDate   = (d.mdt && d.mdt['mdt-date']) || null;
+  var surgDate  = (d.surgery && d.surgery['sg-date']) || null;
+  var dcDate    = (d.postop && d.postop['dc-date']) || null;
+  var neoStart  = (d.mdt && d.mdt['mdt-neo-start']) || null;
+  var neoEnd    = (d.mdt && d.mdt['mdt-neo-end']) || null;
+
+  // Build timeline events
+  var events = [];
+  if (dxDate)   events.push({date: dxDate,   icon:'\ud83d\udd2c', label:'Diagnosis',       col:'var(--blue)'});
+  if (mdtDate)  events.push({date: mdtDate,  icon:'\ud83d\udc65', label:'MDT',             col:'var(--purple)'});
+  if (neoStart) events.push({date: neoStart, icon:'\u26a1',       label:'Neoadjuvant start', col:'var(--amber)'});
+  if (neoEnd)   events.push({date: neoEnd,   icon:'\u2705',       label:'Neoadjuvant end', col:'var(--amber)'});
+  if (surgDate) events.push({date: surgDate, icon:'\ud83e\udd16', label:'Surgery',         col:'var(--green)'});
+  if (dcDate)   events.push({date: dcDate,   icon:'\ud83c\udfe0', label:'Discharge',       col:'var(--teal)'});
+
+  // Sort by date
+  events.sort(function(a,b) { return new Date(a.date) - new Date(b.date); });
+
+  if (events.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+
+  // Calculate days between first and last event for proportional spacing
+  var first = new Date(events[0].date);
+  var last  = new Date(events[events.length-1].date);
+  var totalDays = Math.max(1, Math.round((last - first) / (1000*60*60*24)));
+
+  // Today marker
+  var today = new Date(); today.setHours(0,0,0,0);
+  var todayDays = Math.round((today - first) / (1000*60*60*24));
+  var todayPct  = Math.min(100, Math.max(0, todayDays / totalDays * 100));
+
+  // Build delays summary
+  var delays = [];
+  if (dxDate && mdtDate) {
+    var d1 = Math.round((new Date(mdtDate) - new Date(dxDate)) / (1000*60*60*24));
+    if (d1 > 14) delays.push('Dx\u2192MDT: ' + d1 + ' days' + (d1 > 28 ? ' \u26a0\ufe0f' : ''));
+  }
+  if (mdtDate && surgDate && !neoStart) {
+    var d2 = Math.round((new Date(surgDate) - new Date(mdtDate)) / (1000*60*60*24));
+    if (d2 > 42) delays.push('MDT\u2192Surgery: ' + d2 + ' days \u26a0\ufe0f');
+  }
+  if (surgDate && dcDate) {
+    var los = Math.round((new Date(dcDate) - new Date(surgDate)) / (1000*60*60*24));
+    delays.push('LOS: ' + los + ' days' + (los > 7 ? ' \u26a0\ufe0f' : ' \u2705'));
+  }
+
+  // Render
+  el.innerHTML =
+    '<div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;">' +
+      '<div style="font-size:10px;font-weight:800;color:var(--hint);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">\u23f1\ufe0f Patient journey timeline</div>' +
+
+      // Timeline bar
+      '<div style="position:relative;margin:0 8px 20px;">' +
+        // Base line
+        '<div style="position:absolute;top:16px;left:0;right:0;height:3px;background:var(--bd);border-radius:2px;"></div>' +
+        // Progress line
+        '<div style="position:absolute;top:16px;left:0;width:' + todayPct + '%;height:3px;background:var(--blue);border-radius:2px;transition:width .5s;"></div>' +
+        // Today marker
+        (todayDays >= 0 && todayDays <= totalDays ?
+          '<div style="position:absolute;top:8px;left:calc(' + todayPct + '% - 1px);width:2px;height:18px;background:var(--blue);border-radius:1px;"></div>' : '') +
+        // Events
+        '<div style="display:flex;position:relative;z-index:1;">' +
+          events.map(function(ev, i) {
+            var pct = totalDays > 0 ? Math.round((new Date(ev.date) - first) / (1000*60*60*24) / totalDays * 100) : (i * 100 / Math.max(1, events.length-1));
+            var dateStr = new Date(ev.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+            return '<div style="position:absolute;left:' + pct + '%;transform:translateX(-50%);text-align:center;width:60px;">' +
+              '<div style="width:32px;height:32px;border-radius:50%;background:' + ev.col + '22;border:2px solid ' + ev.col + ';display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto;">' + ev.icon + '</div>' +
+              '<div style="font-size:9px;font-weight:700;color:' + ev.col + ';margin-top:4px;white-space:nowrap;">' + ev.label + '</div>' +
+              '<div style="font-size:9px;color:var(--hint);">' + dateStr + '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+        '<div style="height:70px;"></div>' +
+      '</div>' +
+
+      // Delays / metrics row
+      (delays.length > 0 ?
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid var(--bd);padding-top:10px;">' +
+          delays.map(function(d) {
+            var isWarn = d.indexOf('\u26a0') > -1;
+            return '<div style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:' + (isWarn ? 'var(--amber-l)' : 'var(--green-l)') + ';color:' + (isWarn ? 'var(--amber)' : 'var(--green)') + ';border:1px solid ' + (isWarn ? 'var(--amber-b)' : 'var(--green-b)') + ';">' + d + '</div>';
+          }).join('') +
+        '</div>' : '') +
+    '</div>';
 }
 
 function isModDone(mod) {
@@ -2476,6 +2578,7 @@ function buildPostop() {
       '<div id="loperamide-flag"></div>' +
       '<button class="btn btn-p" onclick="addStomaEntry()" style="width:100%;margin-top:10px;">+ Log stoma entry</button>' +
       '<div id="stoma-log" style="margin-top:8px;"></div>' +
+      '<div id="stoma-trend-flag" style="margin-top:6px;"></div>' +
     '</div></div>' +
     '<div class="cb">' +
       flag('b','\u2139\ufe0f','Unit protocol \u2014 oral first, opioid-sparing','Regular Paracetamol 1g QID + Celebrex 200mg BD. Oxynorm PRN if NRS \u22655. Document all opioid use.') +
@@ -2684,6 +2787,24 @@ function buildPostop() {
       '<div class="fg fr1"><label>Description & action taken</label><textarea id="prob-desc" placeholder="Describe finding and action taken / planned..."></textarea></div>' +
       '<button class="btn btn-p" onclick="addProblem()" style="width:100%;margin-bottom:10px;">+ Log problem</button>' +
       '<div id="prob-list"><div style="font-size:12px;color:var(--hint);text-align:center;padding:8px;">No problems logged</div></div>' +
+    '</div></div>' +
+
+    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-r">\ud83c\udfe0</div><div><div class="ct">Discharge — readmission risk</div><div class="cs">Flag high-risk patients for earlier review</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="cb">' +
+      '<div class="slbl">Tick risk factors present</div>' +
+      '<div class="cg" id="dc-plan-chips" style="margin-top:6px;">' +
+        ['\ud83d\udc68\u200d\ud83e\uddba Age \u226570',
+         '\ud83c\udfe5 ASA III\u2013IV',
+         '\ud83d\udca9 Stoma present',
+         '\ud83d\udea8 Complication during admission',
+         '\ud83e\ude78 CRP still elevated at discharge',
+         '\ud83c\udfe0 Lives alone',
+         '\ud83d\udcca LOS >7 days',
+        ].map(function(l) {
+          return '<div class="chip" onclick="this.classList.toggle(\'on\');renderDcPlan()">' + l + '</div>';
+        }).join('') +
+      '</div>' +
+      '<div id="dc-plan-actions" style="margin-top:10px;"></div>' +
     '</div></div>' +
 
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-p">\ud83d\udcc5</div><div><div class="ct">Delayed discharge — reason log</div><div class="cs">Document if expected discharge is delayed</div></div></div><div class="cv open">\u25be</div></div>' +
@@ -3190,6 +3311,7 @@ function addStomaEntry() {
   var con = document.getElementById('stoma-consistency') ? document.getElementById('stoma-consistency').value : '';
   if (!out) { toast('Enter stoma output volume'); return; }
   stomaLog.push({pod:pod, output:parseInt(out), consistency:con});
+
   var el = document.getElementById('stoma-log');
   if (el) {
     el.innerHTML = stomaLog.map(function(s) {
@@ -3200,8 +3322,111 @@ function addStomaEntry() {
       '</div>';
     }).join('');
   }
+
+  // Trend analysis
+  analyseStomaOutput();
+
   document.getElementById('stoma-output').value = '';
   toast('\ud83d\udca7 Stoma entry logged');
+}
+
+function renderDcPlan() {
+  var f = document.getElementById('dc-plan-actions');
+  if (!f) return;
+
+  var chips = document.querySelectorAll('#dc-plan-chips .chip.on');
+  var count = chips.length;
+  var selected = Array.prototype.slice.call(chips).map(function(c) { return c.textContent.trim(); });
+
+  if (count === 0) {
+    f.innerHTML = flag('g','\u2705','Low readmission risk','Routine discharge. Nurse call at 48h. Standard outpatient follow-up.');
+    return;
+  }
+
+  var hasCRP    = selected.some(function(s) { return s.indexOf('CRP') > -1; });
+  var hasComp   = selected.some(function(s) { return s.indexOf('Complication') > -1; });
+  var hasStoma  = selected.some(function(s) { return s.indexOf('Stoma') > -1; });
+  var highRisk  = count >= 3 || hasCRP || hasComp;
+
+  if (highRisk) {
+    f.innerHTML = flag('r','\ud83d\udea8','High readmission risk \u2014 arrange earlier review',
+      'Risk factors: ' + selected.map(function(s) { return s.replace(/^[\S]+ /,''); }).join(', ') + '.\n\n' +
+      '\u26d4 Do not discharge on routine follow-up:\n' +
+      '\u2022 Schedule clinic review at 1 week (not 2 weeks)\n' +
+      '\u2022 Nurse call at 48h \u2014 targeted check on specific concerns\n' +
+      (hasCRP ? '\u2022 CRP still elevated \u2014 recheck bloods at clinic visit\n' : '') +
+      (hasStoma ? '\u2022 Stoma present \u2014 confirm patient managing independently before discharge\n' : '') +
+      '\u2022 Ensure patient knows to call ward / A&E if: fever, abdominal pain, wound problems, reduced stoma output'
+    );
+  } else {
+    f.innerHTML = flag('a','\u26a0\ufe0f','Moderate risk \u2014 consider earlier review',
+      'Risk factors: ' + selected.map(function(s) { return s.replace(/^[\S]+ /,''); }).join(', ') + '.\n\n' +
+      '\u2022 Consider clinic at 1 week if clinically appropriate\n' +
+      '\u2022 Nurse call at 48h \u2014 check recovery progress\n' +
+      (hasStoma ? '\u2022 Confirm stoma care independence before discharge\n' : '') +
+      '\u2022 Clear verbal and written red flag instructions given'
+    );
+  }
+}
+
+function analyseStomaOutput() {
+  var tf = document.getElementById('stoma-trend-flag');
+  if (!tf || stomaLog.length === 0) return;
+
+  var last    = stomaLog[stomaLog.length - 1].output;
+  var prev    = stomaLog.length > 1 ? stomaLog[stomaLog.length - 2].output : null;
+  var highest = Math.max.apply(null, stomaLog.map(function(s) { return s.output; }));
+
+  // Count consecutive high output days
+  var consecutiveHigh = 0;
+  for (var i = stomaLog.length - 1; i >= 0; i--) {
+    if (stomaLog[i].output > 1500) consecutiveHigh++;
+    else break;
+  }
+
+  var html = '';
+
+  // Dehydration risk scoring
+  var riskScore = 0;
+  if (last > 2000)        riskScore += 3;
+  else if (last > 1500)   riskScore += 2;
+  if (consecutiveHigh >= 2) riskScore += 2;
+  if (prev && last > prev * 1.3) riskScore += 1; // rising trend
+
+  if (riskScore >= 4) {
+    html += flag('r','\ud83d\udea8','High dehydration risk \u2014 act now',
+      'Output ' + last + ' mL' + (consecutiveHigh >= 2 ? ' \u2014 ' + consecutiveHigh + ' consecutive high output days' : '') + '.\n\n' +
+      '\u26d4 Stepwise management:\n' +
+      '1. Check electrolytes urgently (Na, K, Mg, Creatinine)\n' +
+      '2. IV fluid replacement if Na rising or patient symptomatic\n' +
+      '3. Commence Loperamide 2mg QID if not already started\n' +
+      '4. Restrict hypotonic fluids (water, juice, tea)\n' +
+      '5. Consider oral rehydration salts (ORS)\n' +
+      '6. If refractory: discuss Codeine phosphate or Octreotide with senior\n' +
+      '7. Senior review today'
+    );
+  } else if (riskScore >= 2) {
+    html += flag('a','\u26a0\ufe0f','High stoma output \u2014 monitor closely',
+      'Output ' + last + ' mL/day.' + (prev ? ' Previous: ' + prev + ' mL.' : '') + '\n\n' +
+      '\u2022 Check electrolytes if not done today\n' +
+      '\u2022 Commence Loperamide 2mg TDS\n' +
+      '\u2022 Restrict hypotonic fluids\n' +
+      '\u2022 Reassess tomorrow — escalate if not improving'
+    );
+  }
+
+  // Trend arrow
+  if (prev !== null && stomaLog.length >= 2) {
+    var trend = last > prev * 1.2 ? '\ud83d\udcc8 Rising' : last < prev * 0.8 ? '\ud83d\udcc9 Falling' : '\u27a1\ufe0f Stable';
+    var trendCol = last > prev * 1.2 ? 'var(--red)' : last < prev * 0.8 ? 'var(--green)' : 'var(--hint)';
+    html += '<div style="padding:8px 10px;border-radius:var(--rs);background:var(--sf2);border:1px solid var(--bd);margin-top:6px;display:flex;gap:12px;font-size:12px;">' +
+      '<span style="color:var(--hint);">Trend:</span><span style="color:' + trendCol + ';font-weight:700;">' + trend + '</span>' +
+      '<span style="color:var(--hint);">Peak: <b style="color:' + (highest > 1500 ? 'var(--red)' : 'var(--green)') + ';">' + highest + ' mL</b></span>' +
+      '<span style="color:var(--hint);">Days logged: <b>' + stomaLog.length + '</b></span>' +
+    '</div>';
+  }
+
+  tf.innerHTML = html;
 }
 
 function addMobEntry() {
@@ -4254,6 +4479,8 @@ function openExportModal(mode) {
   document.getElementById('sync-export-ts').textContent  = ts;
   document.getElementById('sync-export-sub').textContent = subLabel;
   mo.style.display = 'flex';
+  // Generate QR after modal renders
+  setTimeout(function() { generateQR(code); }, 100);
 }
 
 function copyExportCode() {
@@ -4267,6 +4494,94 @@ function copyExportCode() {
     document.execCommand('copy');
     toast('\u2705 Copied — paste into Teams');
   }
+}
+
+function generateQR(code) {
+  var container = document.getElementById('sync-qr-canvas');
+  if (!container) return;
+  container.innerHTML = '';
+  if (typeof QRCode === 'undefined') {
+    container.innerHTML = '<div style="font-size:11px;color:var(--hint);padding:10px;">QR library loading...</div>';
+    return;
+  }
+  // QR codes have a size limit — if code too long, show warning
+  if (code.length > 2000) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--amber);padding:10px;max-width:200px;text-align:center;">⚠️ Data too large for QR.<br>Use Copy code instead.<br><span style="color:var(--hint);">(' + code.length + ' chars)</span></div>';
+    return;
+  }
+  try {
+    new QRCode(container, {
+      text: code,
+      width: 200,
+      height: 200,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--hint);padding:10px;">Could not generate QR</div>';
+  }
+}
+
+var qrScanStream = null;
+var qrScanInterval = null;
+
+function startQRScan() {
+  var area  = document.getElementById('qr-scan-area');
+  var video = document.getElementById('qr-video');
+  var btn   = document.getElementById('qr-scan-btn');
+  if (!area || !video) return;
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('\u26a0\ufe0f Camera not supported on this browser');
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(function(stream) {
+      qrScanStream = stream;
+      video.srcObject = stream;
+      area.style.display = 'block';
+      if (btn) btn.style.display = 'none';
+
+      // Poll frames using canvas for QR detection
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+
+      qrScanInterval = setInterval(function() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.width  = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          // Use jsQR if available, otherwise prompt manual paste
+          if (typeof jsQR !== 'undefined') {
+            var code = jsQR(imageData.data, imageData.width, imageData.height);
+            if (code && code.data && code.data.startsWith('SL2:')) {
+              stopQRScan();
+              document.getElementById('sync-import-code').value = code.data;
+              previewImport();
+              toast('\u2705 QR scanned successfully');
+            }
+          }
+        }
+      }, 300);
+    })
+    .catch(function(err) {
+      toast('\u26a0\ufe0f Camera access denied — paste code manually');
+    });
+}
+
+function stopQRScan() {
+  if (qrScanStream) {
+    qrScanStream.getTracks().forEach(function(t) { t.stop(); });
+    qrScanStream = null;
+  }
+  if (qrScanInterval) { clearInterval(qrScanInterval); qrScanInterval = null; }
+  var area = document.getElementById('qr-scan-area');
+  var btn  = document.getElementById('qr-scan-btn');
+  if (area) area.style.display = 'none';
+  if (btn)  btn.style.display  = 'block';
 }
 
 function shareToTeams() {
@@ -4405,7 +4720,7 @@ if (cases.length) showAutosaveStatus('saved');
 <!-- SYNC EXPORT MODAL -->
 <div class="mo" id="mo-sync-export" style="display:none;">
   <div class="mo-box" style="max-width:480px;">
-    <div class="mo-title">📤 Sync to Teams</div>
+    <div class="mo-title">📤 Share case</div>
     <div class="mo-sub" id="sync-export-sub">Export cases</div>
     <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--rs);padding:10px 13px;margin-bottom:12px;">
       <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Exported by · Time</div>
@@ -4415,14 +4730,27 @@ if (cases.length) showAutosaveStatus('saved');
       </div>
       <div style="font-size:12px;color:var(--blue);margin-top:3px;font-weight:600;" id="sync-export-id"></div>
     </div>
+
+    <!-- QR Code -->
+    <div style="text-align:center;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">📱 Scan QR code to import</div>
+      <div id="sync-qr-canvas" style="display:inline-block;padding:10px;background:white;border-radius:8px;"></div>
+      <div style="font-size:10.5px;color:var(--hint);margin-top:6px;">Teammate opens SurgLog → Import → Scan QR</div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="flex:1;height:1px;background:var(--bd);"></div>
+      <span style="font-size:10px;color:var(--hint);">or share code manually</span>
+      <div style="flex:1;height:1px;background:var(--bd);"></div>
+    </div>
+
     <div class="fg">
-      <label>Sync code — copy all of this</label>
-      <textarea id="sync-export-code" rows="5" readonly style="font-family:var(--mono);font-size:10px;word-break:break-all;cursor:pointer;" onclick="this.select()"></textarea>
+      <label>Sync code</label>
+      <textarea id="sync-export-code" rows="3" readonly style="font-family:var(--mono);font-size:10px;word-break:break-all;cursor:pointer;" onclick="this.select()"></textarea>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
       <button class="btn btn-p" onclick="copyExportCode()" style="width:100%;padding:11px;font-size:13px;">📋 Copy code</button>
-      <button class="btn" onclick="shareToTeams()" style="width:100%;padding:11px;font-size:13px;border-color:var(--purple-b);color:var(--purple);">💬 Share directly to Teams</button>
-      <div style="font-size:11px;color:var(--hint);text-align:center;line-height:1.5;">Paste the code into your Teams channel. Teammates paste it into Import to load all cases.</div>
+      <button class="btn" onclick="shareToTeams()" style="width:100%;padding:11px;font-size:13px;border-color:var(--purple-b);color:var(--purple);">💬 Share to Teams</button>
     </div>
     <div class="mo-actions"><button class="btn" onclick="closeMo('mo-sync-export')" style="flex:1;">Done</button></div>
   </div>
@@ -4431,15 +4759,33 @@ if (cases.length) showAutosaveStatus('saved');
 <!-- SYNC IMPORT MODAL -->
 <div class="mo" id="mo-sync-import" style="display:none;">
   <div class="mo-box" style="max-width:480px;">
-    <div class="mo-title">⬇️ Import from Teams</div>
-    <div class="mo-sub">Paste the sync code from your Teams channel</div>
+    <div class="mo-title">⬇️ Import case</div>
+    <div class="mo-sub">Scan QR code or paste sync code</div>
+
+    <!-- QR Scanner -->
+    <div style="margin-bottom:12px;">
+      <button class="btn btn-p" onclick="startQRScan()" id="qr-scan-btn" style="width:100%;padding:11px;font-size:13px;">📷 Scan QR code</button>
+      <div id="qr-scan-area" style="display:none;margin-top:10px;position:relative;">
+        <video id="qr-video" style="width:100%;border-radius:var(--rs);background:#000;" autoplay playsinline></video>
+        <div style="position:absolute;inset:0;border:2px solid var(--blue);border-radius:var(--rs);pointer-events:none;"></div>
+        <button onclick="stopQRScan()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.7);border:none;color:white;border-radius:20px;padding:4px 10px;font-size:11px;cursor:pointer;">✕ Stop</button>
+        <div style="text-align:center;font-size:11px;color:var(--hint);margin-top:6px;">Point camera at QR code</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="flex:1;height:1px;background:var(--bd);"></div>
+      <span style="font-size:10px;color:var(--hint);">or paste code manually</span>
+      <div style="flex:1;height:1px;background:var(--bd);"></div>
+    </div>
+
     <div class="fg">
       <label>Paste sync code here</label>
-      <textarea id="sync-import-code" rows="5" placeholder="Paste the SL2:... code from Teams chat here..." style="font-family:var(--mono);font-size:11px;word-break:break-all;" oninput="previewImport()"></textarea>
+      <textarea id="sync-import-code" rows="4" placeholder="Paste the SL2:... code here..." style="font-family:var(--mono);font-size:11px;word-break:break-all;" oninput="previewImport()"></textarea>
     </div>
     <div id="sync-import-preview"></div>
     <div class="mo-actions">
-      <button class="btn" onclick="closeMo('mo-sync-import')">Cancel</button>
+      <button class="btn" onclick="stopQRScan();closeMo('mo-sync-import')">Cancel</button>
       <button class="btn btn-p" id="sync-import-btn" onclick="doImport()" disabled style="flex:1;">Import &amp; merge</button>
     </div>
   </div>
