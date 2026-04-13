@@ -896,6 +896,11 @@ function buildPresentation() {
         '<div class="slbl" style="margin-top:8px;">Symptoms</div>' +
         chips(['\ud83d\udeab Acute bowel obstruction','\ud83d\udca5 Perforation','\ud83e\ude78 Massive lower GI bleeding','\ud83d\udd25 Peritonitis','\ud83e\ude27 Volvulus','\ud83d\udea8 Septic shock','\ud83d\udca7 Intussusception','\ud83e\ude1a Pseudo-obstruction']) +
       '</div>' +
+      '<div class="fr" style="margin-top:10px;">' +
+        '<div class="fg"><label>Symptom duration</label><div style="display:flex;gap:7px;"><input type="number" id="p-dur-n" placeholder="3" style="width:70px;flex-shrink:0;" oninput="checkDiagDelay()"><select id="p-dur-u" onchange="checkDiagDelay()"><option>Days</option><option>Weeks</option><option selected>Months</option><option>Years</option></select></div></div>' +
+        '<div class="fg"><label>Date first saw doctor</label><input type="date" id="p-first-present" onchange="checkDiagDelay()"></div>' +
+      '</div>' +
+      '<div id="diag-delay-flag" style="margin-top:6px;"></div>' +
       '<div class="fg fr1" style="margin-top:10px;"><label>Clinical details</label><input type="text" id="p-chief" placeholder="e.g. Rectal bleeding 3 months, change in bowel habit / Acute obstruction, vomiting 24h"></div>' +
     '</div></div>' +
 
@@ -1332,6 +1337,117 @@ function updateProcLabel() {
   if (hidden) hidden.value = selected.join(' + ');
 }
 
+function checkDiagDelay() {
+  var n   = parseInt(document.getElementById('p-dur-n') ? document.getElementById('p-dur-n').value : '');
+  var u   = document.getElementById('p-dur-u') ? document.getElementById('p-dur-u').value : 'Months';
+  var f   = document.getElementById('diag-delay-flag');
+  if (!f || isNaN(n)) return;
+  var months = u === 'Days' ? n/30 : u === 'Weeks' ? n/4.3 : u === 'Years' ? n*12 : n;
+  if (months >= 6) {
+    f.innerHTML = flag('r','\ud83d\udea8','Significant diagnostic delay \u2014 ' + n + ' ' + u.toLowerCase(),'Delay >6 months. Document referral pathway clearly. Consider whether delay affected disease stage. Flag for audit.');
+  } else if (months >= 3) {
+    f.innerHTML = flag('a','\u26a0\ufe0f','Prolonged symptoms \u2014 ' + n + ' ' + u.toLowerCase(),'Symptoms >3 months before diagnosis. Document the referral pathway and any barriers to earlier diagnosis.');
+  } else {
+    f.innerHTML = '';
+  }
+}
+
+function checkAbxStewardship() {
+  var pod       = document.getElementById('abx-pod') ? document.getElementById('abx-pod').value : '';
+  var running   = !!document.querySelector('#abx-status-grp .sel-r');
+  var none      = !!document.querySelector('#abx-status-grp .sel-g');
+  var oral      = !!document.querySelector('#abx-status-grp .sel-t');
+  var podNum    = parseInt(pod) || 0;
+  var f         = document.getElementById('abx-flag');
+  var srcBlock  = document.getElementById('abx-source-block');
+  if (!f) return;
+  if (none) {
+    f.innerHTML = flag('g','\u2705','No IV antibiotics \u2014 good stewardship','Patient on no antibiotics. Correct ERAS practice.');
+    if (srcBlock) srcBlock.style.display = 'none';
+  } else if (oral) {
+    f.innerHTML = flag('b','\ud83d\udc8a','Switched to oral \u2014 good practice','Confirm a clear stop date is documented on the drug chart.');
+    if (srcBlock) srcBlock.style.display = 'none';
+  } else if (running) {
+    if (srcBlock) srcBlock.style.display = 'block';
+    if (podNum >= 3) {
+      f.innerHTML = flag('r','\ud83d\udea8','IV antibiotics running on ' + pod + ' \u2014 justify or stop now','Running IV antibiotics past POD 3 requires a clearly documented source. Post-op fever alone is NOT an indication. No source = stop immediately.');
+    } else if (podNum === 2) {
+      f.innerHTML = flag('a','\u26a0\ufe0f','IV antibiotics on POD 2 \u2014 document source','Ensure indication is clearly documented. Plan a stop date. Review today.');
+    } else {
+      f.innerHTML = flag('b','\u2139\ufe0f','IV antibiotics running \u2014 document indication','Record source and planned stop date.');
+    }
+  }
+}
+
+function checkAbxNoSource() {
+  var f = document.getElementById('abx-flag');
+  if (f) f.innerHTML = flag('r','\ud83d\udea8','No source identified \u2014 stop IV antibiotics now','No clinical or biochemical evidence of infection. Continuing IV antibiotics without documented source is not acceptable. Stop now and document: \u201cNo active infection identified. IV antibiotics discontinued.\u201d');
+}
+
+function calcWeeksToSurg() {
+  var input = document.getElementById('optim-surg-date');
+  var display = document.getElementById('weeks-to-surg-display');
+  if (!input || !display || !input.value) return;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var surg  = new Date(input.value); surg.setHours(0,0,0,0);
+  var days  = Math.round((surg - today) / (1000 * 60 * 60 * 24));
+  var weeks = (days / 7).toFixed(1);
+  if (days < 0) {
+    display.innerHTML = '<span style="color:var(--hint);font-size:13px;">Surgery date has passed</span>';
+  } else if (days === 0) {
+    display.innerHTML = '<span style="color:var(--red);font-weight:700;font-size:15px;">\ud83d\udea8 Surgery is TODAY</span>';
+  } else if (days <= 7) {
+    display.innerHTML = '<div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--red);">' + days + ' days</div><div style="font-size:11px;color:var(--red);">to surgery \u2014 optimisation window closing</div></div>';
+  } else if (days <= 21) {
+    display.innerHTML = '<div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--amber);">' + weeks + ' weeks</div><div style="font-size:11px;color:var(--amber);">to surgery \u2014 act on referrals now</div></div>';
+  } else {
+    display.innerHTML = '<div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--green);">' + weeks + ' weeks</div><div style="font-size:11px;color:var(--green);">to surgery \u2014 good optimisation window</div></div>';
+  }
+}
+
+function onCFS(el, val) {
+  // Toggle chip selection
+  document.querySelectorAll('#cfs-grp .chip').forEach(function(c) { c.classList.remove('on'); });
+  el.classList.add('on');
+  var score = parseInt(val);
+  var f = document.getElementById('cfs-flag');
+  var rev = document.getElementById('cfs-review-block');
+  if (!f) return;
+  if (score <= 3) {
+    f.innerHTML = flag('g','\u2705','CFS ' + val + ' \u2014 Not frail','No geriatric review required. Proceed with standard pre-op pathway.');
+    if (rev) rev.style.display = 'none';
+  } else if (score === 4) {
+    f.innerHTML = flag('b','\u2139\ufe0f','CFS 4 \u2014 Vulnerable','Consider geriatric review, especially if multiple comorbidities. Ensure prehabilitation is offered.');
+    if (rev) rev.style.display = 'block';
+  } else if (score <= 6) {
+    f.innerHTML = flag('a','\u26a0\ufe0f','CFS ' + val + ' \u2014 Frail \u2014 geriatric review recommended','Refer to geriatrician for optimisation before surgery. Discuss surgical risk with patient clearly. Prehabilitation strongly recommended.');
+    if (rev) rev.style.display = 'block';
+  } else {
+    f.innerHTML = flag('r','\ud83d\udea8','CFS ' + val + ' \u2014 Severely frail \u2014 senior review required','High surgical risk. Mandatory geriatric and anaesthetic review. MDT discussion recommended. Document shared decision-making clearly with patient and family.');
+    if (rev) rev.style.display = 'block';
+  }
+}
+
+function calcMUST() {
+  var bmi   = document.getElementById('must-bmi')   ? parseInt(document.getElementById('must-bmi').value)   : NaN;
+  var wl    = document.getElementById('must-wl')    ? parseInt(document.getElementById('must-wl').value)    : NaN;
+  var acute = document.getElementById('must-acute') ? parseInt(document.getElementById('must-acute').value) : NaN;
+  var res = document.getElementById('must-result');
+  var block = document.getElementById('must-dietitian-block');
+  if (isNaN(bmi) || isNaN(wl) || isNaN(acute)) return;
+  var total = bmi + wl + acute;
+  if (total === 0) {
+    if (res) res.innerHTML = flag('g','\u2705','MUST score 0 \u2014 Low risk','No nutritional intervention required. Routine monitoring.');
+    if (block) block.style.display = 'none';
+  } else if (total === 1) {
+    if (res) res.innerHTML = flag('b','\u2139\ufe0f','MUST score 1 \u2014 Medium risk','Observe and document dietary intake. Repeat MUST in 1 week. Dietitian referral if no improvement.');
+    if (block) block.style.display = 'none';
+  } else {
+    if (res) res.innerHTML = flag('r','\ud83d\udea8','MUST score ' + total + ' \u2014 High risk \u2014 dietitian referral required','Immediate dietitian review. Commence oral nutritional supplements. Consider pre-op nutritional optimisation \u2014 may need to delay surgery to optimise.');
+    if (block) block.style.display = 'block';
+  }
+}
+
 function onFitnessChange() {
   var ecog = document.getElementById('p-ecog') ? document.getElementById('p-ecog').value : '';
   var mets = document.getElementById('p-mets') ? document.getElementById('p-mets').value : '';
@@ -1579,7 +1695,90 @@ function buildPreop() {
   ];
   erasDone = new Array(7).fill(false);
 
+  // Check ECOG from presentation for prehab flag
+  setTimeout(function() {
+    var ecog = document.getElementById('p-ecog') ? document.getElementById('p-ecog').value : '';
+    var mets = document.getElementById('p-mets') ? document.getElementById('p-mets').value : '';
+    var pf = document.getElementById('prehab-ecog-flag');
+    if (!pf) return;
+    if (ecog >= 2 || mets === 'poor') {
+      pf.innerHTML = flag('a','\u26a0\ufe0f','Poor functional status detected \u2014 prehab strongly recommended','ECOG \u22652 or <1 MET recorded in Presentation. Physiotherapy referral and structured prehabilitation programme recommended before surgery.');
+    } else if (ecog === '1' || mets === 'moderate') {
+      pf.innerHTML = flag('b','\u2139\ufe0f','Borderline fitness \u2014 consider prehabilitation','ECOG 1 or moderate METs. Prehab may improve post-op recovery. Discuss with patient.');
+    }
+  }, 100);
+
   return '<div class="two-col"><div>' +
+
+    // ── PRE-OP OPTIMISATION CARD ──────────────────────────────
+    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-p">\ud83d\udcc5</div><div><div class="ct">Pre-op optimisation</div><div class="cs">Weeks before surgery — frailty, nutrition, prehab</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="cb">' +
+
+      // Weeks to surgery counter
+      '<div class="fr" style="margin-bottom:12px;align-items:flex-end;">' +
+        '<div class="fg"><label>Surgery date (if confirmed)</label><input type="date" id="optim-surg-date" oninput="calcWeeksToSurg()"></div>' +
+        '<div id="weeks-to-surg-display" style="flex:1;text-align:center;padding:10px;border-radius:var(--rs);background:var(--sf2);border:1px solid var(--bd);min-height:44px;display:flex;align-items:center;justify-content:center;">' +
+          '<span style="color:var(--hint);font-size:13px;">Enter surgery date for countdown</span>' +
+        '</div>' +
+      '</div>' +
+
+      // CFS
+      '<div class="slbl">1. Frailty — Clinical Frailty Scale (CFS)</div>' +
+      '<div class="cg" id="cfs-grp" style="margin-top:4px;">' +
+        [
+          {v:'1',l:'1 \u2014 Very fit'},
+          {v:'2',l:'2 \u2014 Well'},
+          {v:'3',l:'3 \u2014 Managing well'},
+          {v:'4',l:'4 \u2014 Vulnerable'},
+          {v:'5',l:'5 \u2014 Mildly frail'},
+          {v:'6',l:'6 \u2014 Moderately frail'},
+          {v:'7',l:'7 \u2014 Severely frail'},
+          {v:'8',l:'8 \u2014 Very severely frail'},
+          {v:'9',l:'9 \u2014 Terminally ill'},
+        ].map(function(s) {
+          return '<div class="chip" onclick="onCFS(this,\'' + s.v + '\')">' + s.l + '</div>';
+        }).join('') +
+      '</div>' +
+      '<div id="cfs-flag" style="margin-top:8px;"></div>' +
+      '<div id="cfs-review-block" style="display:none;margin-top:8px;">' +
+        '<div class="fr">' +
+          '<div class="fg"><label>Geriatrician review</label><div class="og" id="geri-rev-grp" style="margin-top:4px;">' + optBtn('Done \u2713','geri-rev-grp','sel-g') + optBtn('Referred','geri-rev-grp','sel-a') + optBtn('Declined','geri-rev-grp','sel') + '</div></div>' +
+          '<div class="fg"><label>Date seen</label><input type="date" id="geri-date"></div>' +
+        '</div>' +
+        '<div class="fg fr1"><label>Geriatrician recommendations</label><textarea id="geri-notes" rows="2" placeholder="e.g. Optimise CCF. Reduce antihypertensives. Physio for prehab. Review post-op delirium risk."></textarea></div>' +
+      '</div>' +
+
+      '<div class="div"></div>' +
+
+      // MUST
+      '<div class="slbl">2. Nutritional screening — MUST score</div>' +
+      '<div class="fr" style="margin-top:6px;">' +
+        '<div class="fg"><label>BMI score (0\u20132)</label><select id="must-bmi" onchange="calcMUST()"><option value="">Select</option><option value="0">0 \u2014 BMI &gt;20</option><option value="1">1 \u2014 BMI 18.5\u201320</option><option value="2">2 \u2014 BMI &lt;18.5</option></select></div>' +
+        '<div class="fg"><label>Weight loss score (0\u20132)</label><select id="must-wl" onchange="calcMUST()"><option value="">Select</option><option value="0">0 \u2014 &lt;5% unintentional loss</option><option value="1">1 \u2014 5\u201310% loss</option><option value="2">2 \u2014 &gt;10% loss</option></select></div>' +
+        '<div class="fg"><label>Acute illness score (0 or 2)</label><select id="must-acute" onchange="calcMUST()"><option value="">Select</option><option value="0">0 \u2014 No acute illness</option><option value="2">2 \u2014 Acutely ill, no intake &gt;5 days</option></select></div>' +
+      '</div>' +
+      '<div id="must-result" style="margin-top:6px;"></div>' +
+      '<div id="must-dietitian-block" style="display:none;margin-top:8px;">' +
+        '<div class="fr">' +
+          '<div class="fg"><label>Dietitian review</label><div class="og" id="diet-rev-grp" style="margin-top:4px;">' + optBtn('Done \u2713','diet-rev-grp','sel-g') + optBtn('Referred','diet-rev-grp','sel-a') + optBtn('Declined','diet-rev-grp','sel') + '</div></div>' +
+          '<div class="fg"><label>Date seen</label><input type="date" id="diet-date"></div>' +
+        '</div>' +
+        '<div class="fg fr1"><label>Nutrition plan</label><textarea id="diet-notes" rows="2" placeholder="e.g. Oral supplements commenced. High protein diet advised. Consider pre-op NG feeding if MUST \u22653."></textarea></div>' +
+      '</div>' +
+
+      '<div class="div"></div>' +
+
+      // PREHAB
+      '<div class="slbl">3. Prehabilitation</div>' +
+      '<div id="prehab-ecog-flag" style="margin-bottom:6px;"></div>' +
+      '<div class="fr" style="margin-top:6px;">' +
+        '<div class="fg"><label>Physiotherapy referral</label><div class="og" id="prehab-grp" style="margin-top:4px;">' + optBtn('Done \u2713','prehab-grp','sel-g') + optBtn('Referred','prehab-grp','sel-a') + optBtn('Not indicated','prehab-grp','sel') + '</div></div>' +
+        '<div class="fg"><label>Date started</label><input type="date" id="prehab-date"></div>' +
+      '</div>' +
+      '<div class="fg fr1" style="margin-top:6px;"><label>Prehab plan</label><textarea id="prehab-notes" rows="2" placeholder="e.g. Twice weekly physiotherapy. Walking programme. Inspiratory muscle training. Target: 4 weeks before surgery."></textarea></div>' +
+
+    '</div></div>' +
+    // ── END OPTIMISATION CARD ─────────────────────────────────
 
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-b">\u2705</div><div><div class="ct">Pre-op checklist</div><div class="cs">Tap each item to expand and complete</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb" style="padding:10px 12px;">' +
@@ -1594,7 +1793,6 @@ function buildPreop() {
         '</div>' +
         '<div class="fr">' +
           '<div class="fg"><label>ASA</label><select id="pr-asa-cl"><option value="">Select</option><option>ASA I</option><option>ASA II</option><option>ASA III</option><option>ASA IV</option></select></div>' +
-          '<div class="fg"><label>Anaesthesia plan</label><select id="pr-anaes-type-cl"><option value="">Select</option><option>General + epidural</option><option>General + spinal</option><option>General + TAP block</option><option>General only</option></select></div>' +
         '</div>' +
         '<div class="slbl" style="margin-top:8px;">Optimisation completed</div>' +
         chips(['\ud83e\udeac Cardiology cleared','\ud83e\uded1 Respiratory optimised','\ud83e\ude78 HbA1c &lt;8%','\ud83d\udcca Anticoagulants reviewed','\ud83e\udeb7 Renal reviewed']) +
@@ -1952,11 +2150,26 @@ function buildPostop() {
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-r">\ud83e\udda0</div><div><div class="ct">IV antibiotic stewardship</div><div class="cs">No infection = no antibiotics. Review daily.</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       flag('b','\u2139\ufe0f','Prophylaxis: single-dose or 24h maximum','Post-op fever alone is not an indication. Always identify source first. Stop if no clinical or biochemical evidence of infection.') +
-      '<div class="fg" style="margin-top:10px;"><label>IV antibiotic status</label>' +
-        '<div class="og" id="abx-status-grp" style="margin-top:4px;">' +
-          optBtn('\u2705 None running', 'abx-status-grp', 'sel-g') +
-          optBtn('\u26a0 IV running',    'abx-status-grp', 'sel-r') +
-          optBtn('Switched to oral',    'abx-status-grp', 'sel-t') +
+      '<div class="fr" style="margin-top:10px;">' +
+        '<div class="fg"><label>Current POD</label><select id="abx-pod" onchange="checkAbxStewardship()"><option value="">Select</option><option>POD 1</option><option>POD 2</option><option>POD 3</option><option>POD 4</option><option>POD 5</option><option>POD 6</option><option>POD 7+</option></select></div>' +
+        '<div class="fg"><label>IV antibiotic status</label>' +
+          '<div class="og" id="abx-status-grp" style="margin-top:4px;">' +
+            optBtn('\u2705 None running', 'abx-status-grp', 'sel-g', ';checkAbxStewardship()') +
+            optBtn('\u26a0 IV running',    'abx-status-grp', 'sel-r', ';checkAbxStewardship()') +
+            optBtn('Switched to oral',    'abx-status-grp', 'sel-t', ';checkAbxStewardship()') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div id="abx-source-block" style="display:none;margin-top:8px;">' +
+        '<div class="fg"><label>Documented source of infection <span class="req">*</span></label>' +
+          '<div class="og" id="abx-source-grp" style="margin-top:4px;">' +
+            optBtn('\ud83e\ude79 Wound / SSI','abx-source-grp','sel') +
+            optBtn('\ud83e\udeb7 UTI','abx-source-grp','sel') +
+            optBtn('\ud83e\uded1 Chest / pneumonia','abx-source-grp','sel') +
+            optBtn('\ud83d\udca5 Anastomotic leak','abx-source-grp','sel-r') +
+            optBtn('\ud83e\udda0 Intra-abdominal collection','abx-source-grp','sel') +
+            optBtn('\u2753 No source identified','abx-source-grp','sel-r',';checkAbxNoSource()') +
+          '</div>' +
         '</div>' +
       '</div>' +
       '<div id="abx-flag"></div>' +
@@ -2894,9 +3107,32 @@ function showWardRound(pod) {
           : '') +
       '</div>';
     }).join('');
+  // ── AUTO ONE-LINER SUMMARY ─────────────────────────────
+  var procLabel = (curCase && curCase.procLabel) ? curCase.procLabel : 'Surgery';
+  var dietLabelsShort = ['NBM','Sips','Free fluids','Light diet','Normal diet','Discharge diet'];
+  var dietNow = dietLabelsShort[Math.min(dietStage >= 0 ? dietStage : 0, 5)];
+  var oneLinerParts = [pod + ' ' + procLabel];
+  oneLinerParts.push(dietNow === 'Normal diet' || dietNow === 'Light diet' ? 'Tolerating ' + dietNow.toLowerCase() : dietNow);
+  if (cathRemoved) oneLinerParts.push('catheter out');
+  if (clexGiven)   oneLinerParts.push('Clexane given');
+  if (lastCRP !== null) oneLinerParts.push('CRP ' + lastCRP + (prevCRP && lastCRP < prevCRP ? '\u2193' : prevCRP && lastCRP > prevCRP ? '\u2191' : '') + ' mg/L');
+  if (abxNone)     oneLinerParts.push('no IV antibiotics');
+  else if (abxOral) oneLinerParts.push('oral antibiotics');
+  else if (abxRunning) oneLinerParts.push('IV antibiotics running');
+  if (mobDone)     oneLinerParts.push('mobilising');
+  oneLinerParts.push(pending === 0 ? 'for discharge planning' : pending + ' item' + (pending > 1 ? 's' : '') + ' pending');
+
+  el.innerHTML += '<div style="margin-top:12px;padding:10px 13px;border-radius:var(--rs);background:rgba(255,255,255,.04);border:1px solid var(--bd);">' +
+    '<div style="font-size:10px;font-weight:800;color:var(--hint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;">\ud83d\udccb Auto ward round summary</div>' +
+    '<div style="font-size:12.5px;color:#e2e8f0;line-height:1.6;">' + oneLinerParts.join('. ') + '.</div>' +
+    '<button onclick="copyOneLiner(this)" style="margin-top:7px;padding:4px 12px;border-radius:20px;border:1px solid var(--bd);background:transparent;color:var(--hint);font-size:11px;cursor:pointer;">\ud83d\udccb Copy</button>' +
+  '</div>';
 }
 
-function refreshWardRound() {
+function copyOneLiner(btn) {
+  var text = btn.previousElementSibling.textContent;
+  navigator.clipboard.writeText(text).then(function() { toast('\u2705 Copied to clipboard'); });
+}
   var activeBtn = document.querySelector('#wr-pod-grp .sel');
   if (activeBtn) showWardRound(activeBtn.textContent.trim());
 }
