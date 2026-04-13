@@ -120,6 +120,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:poi
 .opt.sel-r{border-color:var(--red);color:var(--red);background:var(--red-l);font-weight:600;}
 .opt.sel-a{border-color:var(--amber);color:var(--amber);background:var(--amber-l);font-weight:600;}
 .opt.sel-t{border-color:var(--teal);color:var(--teal);background:var(--teal-l);font-weight:600;}
+.opt.sel-b{border-color:var(--blue);color:var(--blue);background:var(--blue-l);font-weight:600;}
 .chip{display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:7px;border:1px solid var(--bd2);background:var(--sf);font-size:11.5px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;}
 .chip:hover,.chip.on{border-color:var(--teal);color:var(--teal);background:var(--teal-l);font-weight:600;}
 .cg{display:flex;flex-wrap:wrap;gap:5px;}
@@ -324,6 +325,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:poi
       </div>
     </div>
     <div class="tb-right">
+      <span id="autosave-status" style="font-size:11px;font-weight:600;"></span>
       <div id="tb-sync-btns" style="display:flex;gap:6px;align-items:center;"></div>
       <div class="ap ap-r" id="alert-pill" style="display:none;"><div class="ap-dot"></div><span id="alert-txt">0</span></div>
     </div>
@@ -368,7 +370,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:poi
         <div class="mod-tb">
           <div class="mod-tb-title" id="mod-title">Select a module above</div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <span id="autosave-status" style="font-size:11px;font-weight:600;min-width:70px;text-align:right;"></span>
             <div class="mod-tb-actions">
               <button class="btn btn-p" onclick="saveCurrentMod()">Save</button>
             </div>
@@ -431,14 +432,14 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:poi
     </div>
     <div class="fg"><label>Auto-generated case ID</label><div class="id-prev" id="nc-id-prev">Select procedure first</div></div>
     <div class="fr">
-      <div class="fg"><label>Age <span class="req">*</span></label><input type="number" id="nc-age" placeholder="62" min="18" max="100"></div>
-      <div class="fg"><label>Sex <span class="req">*</span></label><select id="nc-sex"><option value="">Select</option><option>Male</option><option>Female</option></select></div>
+      <div class="fg"><label>Age</label><input type="number" id="nc-age" placeholder="62" min="18" max="100"></div>
+      <div class="fg"><label>Sex</label><select id="nc-sex"><option value="">Select</option><option>Male</option><option>Female</option></select></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Tumour site</label>
         <select id="nc-site"><option value="">Select</option><option>Upper rectum</option><option>Mid rectum</option><option>Low rectum</option><option>Sigmoid colon</option><option>Descending colon</option><option>Transverse colon</option><option>Ascending colon</option><option>Caecum</option><option>Anal canal</option></select>
       </div>
-      <div class="fg"><label>Diagnosis date <span class="req">*</span></label><input type="date" id="nc-dx"></div>
+      <div class="fg"><label>Diagnosis date</label><input type="date" id="nc-dx"></div>
     </div>
     <div class="fg"><label>TNM stage (if known)</label><input type="text" id="nc-tnm" placeholder="e.g. T3 N1 M0"></div>
     <div class="fg"><label>Logged by</label>
@@ -879,15 +880,23 @@ function buildPresentation() {
       '</div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-t">\ud83d\udcac</div><div><div class="ct">Presenting complaint</div><div class="cs">Symptoms, duration, pattern</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-t">\ud83d\udcac</div><div><div class="ct">Presenting complaint</div><div class="cs">Classification, symptoms, context</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
-      '<div class="fg fr1"><label>Chief complaint <span class="req">*</span></label><input type="text" id="p-chief" placeholder="e.g. Rectal bleeding for 3 months, change in bowel habit"></div>' +
-      '<div class="fr">' +
-        '<div class="fg"><label>Duration</label><div style="display:flex;gap:7px;"><input type="number" id="p-dur-n" placeholder="3" style="width:70px;flex-shrink:0;"><select id="p-dur-u"><option>Days</option><option>Weeks</option><option selected>Months</option><option>Years</option></select></div></div>' +
-        '<div class="fg"><label>Pattern</label><select id="p-pattern"><option value="">Select</option><option>Progressive</option><option>Intermittent</option><option>Gradual onset</option></select></div>' +
+      '<div class="fg"><label>Presentation type <span class="req">*</span></label>' +
+        '<div class="og" id="p-presentation-grp" style="margin-top:4px;">' +
+          optBtn('\ud83d\uddd3\ufe0f Elective',  'p-presentation-grp','sel-g',";onPresentationType('elective')") +
+          optBtn('\ud83d\udea8 Emergency','p-presentation-grp','sel-r',";onPresentationType('emergency')") +
+        '</div>' +
       '</div>' +
-      '<div class="slbl">Symptoms</div>' +
-      chips(['\ud83e\ude78 Rectal bleeding','\ud83d\udca9 Change in bowel habit','\u2696\ufe0f Weight loss','\ud83d\ude23 Abdominal pain','\ud83c\udf00 Tenesmus','\ud83d\udca7 Mucus PR','\ud83d\ude34 Fatigue','\ud83d\udeab Bowel obstruction','\ud83d\udc8a Anaemia']) +
+      '<div id="elective-symptoms" style="display:none;">' +
+        '<div class="slbl" style="margin-top:8px;">Symptoms</div>' +
+        chips(['\ud83e\ude78 Rectal bleeding','\ud83d\udca9 Change in bowel habit','\u2696\ufe0f Weight loss','\ud83d\ude23 Abdominal pain','\ud83c\udf00 Tenesmus','\ud83d\udca7 Mucus PR','\ud83d\ude34 Fatigue','\ud83d\udc8a Anaemia','\ud83d\udc4d Incidental / screening']) +
+      '</div>' +
+      '<div id="emergency-symptoms" style="display:none;">' +
+        '<div class="slbl" style="margin-top:8px;">Symptoms</div>' +
+        chips(['\ud83d\udeab Acute bowel obstruction','\ud83d\udca5 Perforation','\ud83e\ude78 Massive lower GI bleeding','\ud83d\udd25 Peritonitis','\ud83e\ude27 Volvulus','\ud83d\udea8 Septic shock','\ud83d\udca7 Intussusception','\ud83e\ude1a Pseudo-obstruction']) +
+      '</div>' +
+      '<div class="fg fr1" style="margin-top:10px;"><label>Clinical details</label><input type="text" id="p-chief" placeholder="e.g. Rectal bleeding 3 months, change in bowel habit / Acute obstruction, vomiting 24h"></div>' +
     '</div></div>' +
 
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-a">\ud83d\udccb</div><div><div class="ct">Medical history & fitness</div><div class="cs">Comorbidities, medications, functional status</div></div></div><div class="cv open">\u25be</div></div>' +
@@ -895,12 +904,18 @@ function buildPresentation() {
       '<div class="slbl">Comorbidities</div>' +
       chips(['\ud83e\udeac\ufe0f IHD/CAD','\ud83d\udc93 CCF','\ud83e\uded1 COPD','\ud83e\ude78 Diabetes','\ud83d\udc8a Hypertension','\ud83e\udde0 Stroke/TIA','\ud83e\udeb7 CKD','\ud83d\udce9 Immunosuppressed','\ud83d\udfe2 None significant']) +
       '<div class="fr" style="margin-top:10px;">' +
-        '<div class="fg"><label>ECOG status</label><select id="p-ecog"><option value="">Select</option><option value="0">0 \u2014 Fully active</option><option value="1">1 \u2014 Restricted, ambulatory</option><option value="2">2 \u2014 Self-care only</option><option value="3">3 \u2014 Limited</option></select></div>' +
-        '<div class="fg"><label>Exercise capacity</label><select id="p-mets"><option value="">Select</option><option>&gt;4 METs \u2014 good</option><option>1\u20134 METs \u2014 moderate</option><option>&lt;1 MET \u2014 poor</option></select></div>' +
+        '<div class="fg"><label>ECOG status</label><select id="p-ecog" onchange="onFitnessChange()"><option value="">Select</option><option value="0">0 \u2014 Fully active, no restrictions</option><option value="1">1 \u2014 Restricted strenuous activity, ambulatory</option><option value="2">2 \u2014 Self-care only, up >50% of waking hours</option><option value="3">3 \u2014 Limited self-care, confined >50% of waking hours</option><option value="4">4 \u2014 Completely disabled, no self-care</option></select></div>' +
+        '<div class="fg"><label>Exercise capacity</label><select id="p-mets" onchange="onFitnessChange()"><option value="">Select</option><option value="good">&gt;4 METs \u2014 good (climb stairs, brisk walk)</option><option value="moderate">1\u20134 METs \u2014 moderate (light housework, slow walk)</option><option value="poor">&lt;1 MET \u2014 poor (unable to walk indoors)</option></select></div>' +
       '</div>' +
-      '<div class="fg fr1"><label>Current medications</label><textarea id="p-meds" placeholder="e.g. Warfarin 3mg OD \u26a0  Metformin 500mg BD. Flag anticoagulants."></textarea></div>' +
-      '<div class="fr">' +
-        '<div class="fg"><label>Allergies</label><input type="text" id="p-allergy" placeholder="e.g. Penicillin \u2014 rash. NKDA."></div>' +
+      '<div id="fitness-flag" style="margin-top:6px;"></div>' +
+      '<div class="fg fr1"><label>Current medications</label><textarea id="p-meds" placeholder="List all medications..."></textarea></div>' +
+      '<div class="slbl" style="margin-top:2px;">High-risk medications — tick if on patient</div>' +
+      '<div class="cg">' +
+        '<div class="chip" id="med-anticoag" onclick="toggleMedFlag(this,\'anticoag\')">\ud83d\udea8 Anticoagulant (Warfarin / DOAC)</div>' +
+        '<div class="chip" id="med-antiplatelet" onclick="toggleMedFlag(this,\'antiplatelet\')">\ud83d\udea8 Antiplatelet (Aspirin / Clopidogrel)</div>' +
+      '</div>' +
+      '<div id="med-flag-detail" style="margin-top:6px;"></div>' +
+      '<div class="fr" style="margin-top:8px;">' +
         '<div class="fg"><label>Smoking</label><select id="p-smoke"><option value="">Select</option><option>Non-smoker</option><option>Ex-smoker</option><option>Active smoker</option></select></div>' +
       '</div>' +
       '<div class="fg fr1"><label>Clinical notes</label><textarea id="p-notes" placeholder="Summarise clinical picture, referral source, key concerns..."></textarea></div>' +
@@ -930,13 +945,13 @@ function buildDiagnosis() {
       '<div id="dx-histo-flag"></div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-t">' + '\ud83d\udd2c' + '</div><div><div class="ct">Investigations</div><div class="cs">Colonoscopy, CT, MRI, bloods, CEA</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-t">' + '\ud83d\udd2c' + '</div><div><div class="ct">Investigations</div><div class="cs">Colonoscopy, CT, MRI, PET, bloods, CEA</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       '<div class="slbl">Colonoscopy</div>' +
       '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
         '<div class="fg"><label>Colonoscopy date</label><input type="date" id="dx-scope-date" onchange="checkScanWait(this.value,\'scope\',\'Colonoscopy\')"></div>' +
         '<div class="fg"><label>Biopsy result</label><select id="dx-biopsy"><option value="">Select</option><option>Adenocarcinoma \u2014 confirmed</option><option>Pending histology</option><option>Insufficient sample</option></select></div>' +
-        '<div class="fg"><label>Scope complete?</label><select id="dx-scope-complete"><option value="">Select</option><option>Complete to caecum</option><option>Incomplete \u2014 obstructing mass</option><option>Incomplete \u2014 poor prep</option></select></div>' +
+        '<div class="fg"><label>Scope complete?</label><select id="dx-scope-complete"><option value="">Select</option><option>Complete to caecum</option><option>Incomplete \u2014 obstructing mass</option><option>Incomplete \u2014 poor prep</option><option>No scope \u2014 emergency presentation</option><option>No scope \u2014 patient declined</option><option>No scope \u2014 technically not possible</option></select></div>' +
       '</div>' +
       '<div class="slbl" style="margin-top:6px;">CT chest / abdomen / pelvis</div>' +
       '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
@@ -948,8 +963,12 @@ function buildDiagnosis() {
       '<div class="slbl" style="margin-top:6px;">MRI pelvis (rectal / anal)</div>' +
       '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
         '<div class="fg"><label>MRI date</label><input type="date" id="dx-mri-date" onchange="checkScanWait(this.value,\'mri\',\'MRI pelvis\')"></div>' +
-        '<div class="fg"><label>Nodal status (CT/MRI)</label><select id="ct-nodes" onchange="checkNeoadjuvant()"><option value="">Select</option><option value="N0">N0 \u2014 no suspicious nodes</option><option value="N+">N+ \u2014 suspicious regional nodes</option><option value="bulky">Bulky nodal disease</option></select></div>' +
         '<div class="fg"><label>MRI T stage (rectal)</label><select id="mri-t-stage" onchange="checkNeoadjuvant()"><option value="">Select</option><option value="mrT1">mrT1</option><option value="mrT2">mrT2</option><option value="mrT3">mrT3</option><option value="mrT4">mrT4</option></select></div>' +
+        '<div class="fg"><label>Nodal status (CT/MRI)</label><select id="ct-nodes" onchange="checkNeoadjuvant()"><option value="">Select</option><option value="N0">N0 \u2014 no suspicious nodes</option><option value="N+">N+ \u2014 suspicious regional nodes</option><option value="bulky">Bulky nodal disease</option></select></div>' +
+      '</div>' +
+      '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
+        '<div class="fg"><label>Pelvic nodal status (MRI)</label><select id="dx-pelvic-nodes"><option value="">Select</option><option>No suspicious pelvic nodes</option><option>Suspicious mesorectal nodes</option><option>Suspicious lateral pelvic nodes</option><option>Bulky lateral pelvic nodes</option></select></div>' +
+        '<div class="fg"></div><div class="fg"></div>' +
       '</div>' +
       '<div id="inv-wait-flags"></div>' +
       '<div id="rectal-mri-section" style="display:none;">' +
@@ -959,6 +978,13 @@ function buildDiagnosis() {
           '<div class="fg"><label>CRM distance (mm)</label><input type="number" id="dx-crm-dist" placeholder="e.g. 4" step="0.5"></div>' +
           '<div class="fg"><label>EMVI</label><select id="dx-emvi"><option value="">Select</option><option>Negative</option><option>Equivocal</option><option>Positive</option></select></div>' +
         '</div>' +
+      '</div>' +
+      '<div class="div"></div>' +
+      '<div class="slbl">PET scan</div>' +
+      '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
+        '<div class="fg"><label>PET-CT date</label><input type="date" id="dx-pet-date"></div>' +
+        '<div class="fg"><label>PET-CT result</label><select id="dx-pet-result"><option value="">Not done / N/A</option><option>No FDG-avid distant disease</option><option>FDG-avid liver lesion(s)</option><option>FDG-avid lung lesion(s)</option><option>FDG-avid nodal disease</option><option>Widespread metastatic disease</option><option>Equivocal \u2014 for MDT review</option></select></div>' +
+        '<div class="fg"><label>Indication</label><select id="dx-pet-indication"><option value="">Select</option><option>Staging \u2014 high CEA</option><option>Equivocal CT findings</option><option>Pre-operative assessment</option><option>Recurrence assessment</option></select></div>' +
       '</div>' +
       '<div class="div"></div>' +
       '<div class="slbl">Tumour markers & bloods</div>' +
@@ -1016,70 +1042,50 @@ function buildMDT() {
     : '<div class="flag flag-g" style="margin-bottom:14px;"><div class="fi">\ud83e\udd1e</div><div class="fb"><div class="ft">Colon cancer pathway — post-op MDT (after histology)</div><p>Colon cancers do not routinely require pre-op MDT unless locally advanced or metastatic. Post-op MDT is triggered once histology is available — record it in Section 3 below.</p></div></div>';
 
   var preOpMDTSection = isRectal ? (
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-r">\ud83d\udea8</div><div><div class="ct">Pre-op MDT — REQUIRED for rectal cancer</div><div class="cs">Must be completed before proceeding to Pre-op</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-b">\ud83d\udc65</div><div><div class="ct">Pre-op MDT — rectal cancer</div><div class="cs">Recommended before surgery — document if held</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
-      '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
-        '<div class="fg"><label>MDT date <span class="req">*</span></label><input type="date" id="mdt-preop-date" onchange="checkMDTGate()"></div>' +
-        '<div class="fg"><label>MDT chair / lead</label><input type="text" id="mdt-preop-chair" placeholder="e.g. Dr Consultant"></div>' +
-        '<div class="fg"><label>Specialties present</label><input type="text" id="mdt-preop-specialties" placeholder="e.g. Surgery, Oncology, Radiology, Path"></div>' +
+      '<div class="flag flag-b" style="margin-bottom:10px;"><div class="fi">\u2139\ufe0f</div><div class="fb"><div class="ft">Pre-op MDT strongly recommended for rectal cancer</div><p>Emergency cases may proceed without formal MDT — document clinical urgency and reason below. Record MDT outcome when available.</p></div></div>' +
+      '<div class="fr">' +
+        '<div class="fg"><label>MDT held?</label><div class="og" id="mdt-held-grp" style="margin-top:4px;">' +
+          optBtn('Yes \u2013 MDT held','mdt-held-grp','sel-g') +
+          optBtn('Emergency \u2014 bypassed','mdt-held-grp','sel-a') +
+          optBtn('Pending','mdt-held-grp','sel') +
+        '</div></div>' +
+        '<div class="fg"><label>MDT date</label><input type="date" id="mdt-preop-date" onchange="checkMDTGate()"></div>' +
       '</div>' +
-      '<div class="fg fr1"><label>MDT outcome — full decision text <span class="req">*</span></label><textarea id="mdt-preop-decision" rows="4" placeholder="Record the full MDT recommendation: staging impression, treatment intent, neoadjuvant plan, surgical approach agreed..." oninput="checkMDTGate()"></textarea></div>' +
+      '<div class="fg fr1"><label>MDT outcome / clinical decision</label><textarea id="mdt-preop-decision" rows="4" placeholder="Record MDT recommendation or emergency surgical decision..." oninput="checkMDTGate()"></textarea></div>' +
       '<div class="fr">' +
         '<div class="fg"><label>Treatment intent</label>' +
           '<div class="og" id="mdt-intent-grp" style="margin-top:4px;">' +
-            optBtn('Curative','mdt-intent-grp','sel-g') + optBtn('Palliative active','mdt-intent-grp','sel-a') + optBtn('BSC / palliative','mdt-intent-grp','sel-r') +
+            optBtn('Curative','mdt-intent-grp','sel-g') + optBtn('Palliative active','mdt-intent-grp','sel-a') +
           '</div>' +
         '</div>' +
-        '<div class="fg"><label>Surgical approach</label>' +
-          '<div class="og" id="mdt-approach-grp" style="margin-top:4px;">' +
-            optBtn('Robotic','mdt-approach-grp','sel') +
-            optBtn('Laparoscopic','mdt-approach-grp','sel') +
-            optBtn('Open','mdt-approach-grp','sel') +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="fr">' +
         '<div class="fg"><label>Planned procedure</label>' +
-          '<select id="mdt-proc" onchange="onMdtProc(this.value)">' +
-            '<option value="">Select</option>' +
-            '<option>LAR + TME</option>' +
-            '<option>Low LAR + TME + defunctioning ileostomy</option>' +
-            '<option>APR</option>' +
-            '<option>TaTME</option>' +
-            '<option>TAMIS / local excision</option>' +
-            '<option>Watch and wait (complete clinical response)</option>' +
-            '<option>Multivisceral resection</option>' +
-            '<option value="other">Other — specify below</option>' +
-          '</select>' +
+          '<div class="cg" id="proc-chips" style="margin-top:4px;">' +
+            ['LAR','ULAR','APR','TaTME','TAMIS / local excision','Pelvic node dissection','Multivisceral resection','Watch and wait (cCR)'].map(function(p) {
+              return '<div class="chip" onclick="toggleProcChip(this)">' + p + '</div>';
+            }).join('') +
+          '</div>' +
         '</div>' +
-        '<div class="fg" id="mdt-proc-other-wrap" style="display:none;"><label>Specify procedure</label><input type="text" id="mdt-proc-other" placeholder="e.g. Right hemicolectomy + sigmoidectomy (synchronous tumours)"></div>' +
-      '</div>' +
+        '<div class="fg" style="margin-top:6px;"><label>Other — specify</label><input type="text" id="mdt-proc-other" placeholder="e.g. Emergency Hartmann\'s, resection + end colostomy" oninput="updateProcLabel()"></div>' +
+        '<input type="hidden" id="mdt-proc">' +
       '<div id="mdt-gate-flag" style="margin-top:4px;"></div>' +
     '</div></div>'
   ) : (
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-b">\u2139\ufe0f</div><div><div class="ct">Pre-op MDT — not routinely required</div><div class="cs">Colon cancer — document only if MDT held</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
-      '<div class="flag flag-b"><div class="fi">\u2139\ufe0f</div><div class="fb"><div class="ft">Pre-op MDT optional for colon cancer</div><p>Only complete this section if the case was discussed pre-operatively (e.g. locally advanced, metastatic, or complex anatomy requiring multi-specialty input).</p></div></div>' +
+      '<div class="flag flag-b"><div class="fi">\u2139\ufe0f</div><div class="fb"><div class="ft">Pre-op MDT optional for colon cancer</div><p>Only complete if discussed pre-operatively (e.g. locally advanced, metastatic, emergency, or complex anatomy).</p></div></div>' +
       '<div class="fr" style="margin-top:10px;">' +
-        '<div class="fg"><label>Pre-op MDT held?</label><div class="og" id="mdt-preop-held-grp" style="margin-top:4px;">' + optBtn('Yes','mdt-preop-held-grp','sel-g') + optBtn('No — not required','mdt-preop-held-grp','sel') + '</div></div>' +
+        '<div class="fg"><label>Pre-op MDT held?</label><div class="og" id="mdt-preop-held-grp" style="margin-top:4px;">' + optBtn('Yes','mdt-preop-held-grp','sel-g') + optBtn('No \u2014 not required','mdt-preop-held-grp','sel') + optBtn('Emergency \u2014 bypassed','mdt-preop-held-grp','sel-a') + '</div></div>' +
         '<div class="fg"><label>MDT date (if held)</label><input type="date" id="mdt-preop-date"></div>' +
       '</div>' +
-      '<div class="fg fr1"><label>Notes (if held)</label><textarea id="mdt-preop-decision" rows="3" placeholder="Record MDT outcome if discussion took place..."></textarea></div>' +
+      '<div class="fg fr1"><label>Notes (if held)</label><textarea id="mdt-preop-decision" rows="3" placeholder="Record MDT outcome or emergency surgical decision..."></textarea></div>' +
       '<div class="fr">' +
         '<div class="fg"><label>Treatment intent</label>' +
           '<div class="og" id="mdt-intent-grp" style="margin-top:4px;">' +
-            optBtn('Curative','mdt-intent-grp','sel-g') + optBtn('Palliative active','mdt-intent-grp','sel-a') + optBtn('BSC / palliative','mdt-intent-grp','sel-r') +
+            optBtn('Curative','mdt-intent-grp','sel-g') + optBtn('Palliative active','mdt-intent-grp','sel-a') +
           '</div>' +
         '</div>' +
-        '<div class="fg"><label>Surgical approach</label>' +
-          '<div class="og" id="mdt-approach-grp" style="margin-top:4px;">' +
-            optBtn('Robotic','mdt-approach-grp','sel') +
-            optBtn('Laparoscopic','mdt-approach-grp','sel') +
-            optBtn('Open','mdt-approach-grp','sel') +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="fr">' +
         '<div class="fg"><label>Planned procedure</label>' +
           '<select id="mdt-proc" onchange="onMdtProc(this.value)">' +
             '<option value="">Select</option>' +
@@ -1090,11 +1096,11 @@ function buildMDT() {
             '<option>Total colectomy</option>' +
             '<option>Hartmann\'s procedure</option>' +
             '<option>Multivisceral resection</option>' +
-            '<option value="other">Other — specify below</option>' +
+            '<option value="other">Other \u2014 specify below</option>' +
           '</select>' +
         '</div>' +
-        '<div class="fg" id="mdt-proc-other-wrap" style="display:none;"><label>Specify procedure</label><input type="text" id="mdt-proc-other" placeholder="e.g. Right hemicolectomy + sigmoidectomy (synchronous tumours)"></div>' +
       '</div>' +
+      '<div class="fg" id="mdt-proc-other-wrap" style="display:none;"><label>Specify procedure</label><input type="text" id="mdt-proc-other" placeholder="e.g. Right hemicolectomy + sigmoidectomy (synchronous tumours)"></div>' +
     '</div></div>'
   );
 
@@ -1111,7 +1117,6 @@ function buildMDT() {
             '<option value="Immunotherapy (MSI-H/dMMR)">Immunotherapy (MSI-H/dMMR)</option>' +
           '</select>' +
         '</div>' +
-        '<div class="fg"><label>Oncologist</label><input type="text" id="mdt-oncologist" placeholder="e.g. Dr Oncologist name"></div>' +
       '</div>' +
       '<div id="neo-plan-section" style="display:none;">' +
         '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
@@ -1303,16 +1308,76 @@ function checkMDTGate() {
   var hasDate = dateEl && dateEl.value;
   var hasDec  = decEl && decEl.value.trim().length > 10;
   if (hasDate && hasDec) {
-    f.innerHTML = flag('g','\u2705','Pre-op MDT recorded \u2014 proceed to Pre-op optimisation','MDT decision documented. You may now proceed to Pre-op.');
+    f.innerHTML = flag('g','\u2705','MDT / decision recorded \u2014 proceed to Pre-op','Decision documented. You may proceed.');
     var badge = document.getElementById('mdt-nb');
     if (badge) badge.style.display = 'none';
     if (scEl) { scEl.textContent = new Date(dateEl.value).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); scEl.style.color = 'var(--green)'; }
   } else {
-    f.innerHTML = flag('a','\u23f0','Pre-op MDT not yet recorded','Date and full MDT decision text are required before proceeding to Pre-op Optimisation.');
-    var badge = document.getElementById('mdt-nb');
-    if (badge) badge.style.display = 'flex';
-    if (scEl) { scEl.textContent = 'Pending'; scEl.style.color = 'var(--amber)'; }
+    f.innerHTML = flag('b','\u2139\ufe0f','MDT not yet recorded','Document MDT outcome or emergency surgical decision when available. You can still proceed to Pre-op for emergency cases.') ;
+    if (scEl) { scEl.textContent = 'Pending'; scEl.style.color = 'var(--hint)'; }
   }
+}
+
+function toggleProcChip(el) {
+  el.classList.toggle('on');
+  updateProcLabel();
+}
+
+function updateProcLabel() {
+  var chips = document.querySelectorAll('#proc-chips .chip.on');
+  var selected = Array.prototype.slice.call(chips).map(function(c) { return c.textContent.trim(); });
+  var other = document.getElementById('mdt-proc-other') ? document.getElementById('mdt-proc-other').value.trim() : '';
+  if (other) selected.push(other);
+  var hidden = document.getElementById('mdt-proc');
+  if (hidden) hidden.value = selected.join(' + ');
+}
+
+function onFitnessChange() {
+  var ecog = document.getElementById('p-ecog') ? document.getElementById('p-ecog').value : '';
+  var mets = document.getElementById('p-mets') ? document.getElementById('p-mets').value : '';
+  var f = document.getElementById('fitness-flag');
+  if (!f || (!ecog && !mets)) return;
+
+  if (ecog === '0' && mets === 'good') {
+    f.innerHTML = flag('g','\u2705','Fit for major surgery','ECOG 0 + >4 METs. No additional cardiopulmonary workup required unless specific comorbidities. Proceed with standard pre-op assessment.');
+  } else if (ecog === '1' && mets === 'good') {
+    f.innerHTML = flag('g','\u2705','Suitable for surgery \u2014 routine pre-op','ECOG 1 + >4 METs. Standard pre-op workup sufficient. Document any activity-limiting comorbidities.');
+  } else if ((ecog === '1' || ecog === '2') && mets === 'moderate') {
+    f.innerHTML = flag('a','\u26a0\ufe0f','Borderline fitness \u2014 further assessment recommended','Consider cardiology review, CPET (cardiopulmonary exercise test), or anaesthetic pre-assessment. Optimise comorbidities before surgery. Discuss risk with patient.');
+  } else if (ecog === '2' && mets === 'poor') {
+    f.innerHTML = flag('r','\ud83d\udea8','High surgical risk \u2014 formal assessment required','ECOG 2 + <1 MET. Mandatory anaesthetic review. Consider CPET. Discuss risk-benefit with patient and MDT. Prehabilitation may be beneficial if time allows.');
+  } else if (ecog === '3' || ecog === '4' || mets === 'poor') {
+    f.innerHTML = flag('r','\ud83d\udea8','Poor fitness \u2014 high-risk case','Requires senior anaesthetic and surgical review before listing. Consider MDT discussion. Document shared decision-making clearly. Prehabilitation if elective.');
+  } else if (ecog || mets) {
+    f.innerHTML = flag('b','\u2139\ufe0f','Complete both fields for fitness recommendation','Select both ECOG status and exercise capacity to generate a pre-op fitness recommendation.');
+  }
+}
+
+function onPresentationType(type) {
+  var elective  = document.getElementById('elective-symptoms');
+  var emergency = document.getElementById('emergency-symptoms');
+  if (elective)  elective.style.display  = type === 'elective'  ? 'block' : 'none';
+  if (emergency) emergency.style.display = type === 'emergency' ? 'block' : 'none';
+}
+
+function onElectiveSubtype(sub) {
+  var sb = document.getElementById('elective-symptomatic-block');
+  var sc = document.getElementById('elective-screening-block');
+  if (sb) sb.style.display = sub === 'symptomatic' ? 'block' : 'none';
+  if (sc) sc.style.display = sub === 'screening'   ? 'block' : 'none';
+}
+
+function toggleMedFlag(el, type) {
+  el.classList.toggle('on');
+  var isOn = el.classList.contains('on');
+  var f = document.getElementById('med-flag-detail');
+  if (!f) return;
+  var msgs = [];
+  var anticoagOn = document.getElementById('med-anticoag') && document.getElementById('med-anticoag').classList.contains('on');
+  var antiplatOn = document.getElementById('med-antiplatelet') && document.getElementById('med-antiplatelet').classList.contains('on');
+  if (anticoagOn) msgs.push(flag('r','\ud83d\udea8','Anticoagulant on patient \u2014 action required pre-op','Document agent and indication. Plan must be recorded in Pre-op \u2192 Anaesthetic Assessment \u2192 High-risk medications.'));
+  if (antiplatOn) msgs.push(flag('a','\u26a0\ufe0f','Antiplatelet on patient \u2014 review pre-op','Aspirin: continue. Clopidogrel/Ticagrelor: stop before surgery. Document plan in Pre-op module.'));
+  f.innerHTML = msgs.join('');
 }
 
 function onNeoDecision(val) {
@@ -1420,15 +1485,6 @@ function checkPostopMDTFlag() {
 }
 
 function saveMDTAndContinue() {
-  // Validate rectal pre-op MDT before proceeding
-  var dateEl = document.getElementById('mdt-preop-date');
-  var decEl  = document.getElementById('mdt-preop-decision');
-  var hasDate = dateEl && dateEl.value;
-  var hasDec  = decEl && decEl.value.trim().length > 10;
-  if (!hasDate || !hasDec) {
-    toast('\u26a0 Pre-op MDT date and decision required for rectal cancer');
-    return;
-  }
   saveCurrentMod();
   goMod('preop');
 }
@@ -1523,34 +1579,15 @@ function buildPreop() {
   ];
   erasDone = new Array(7).fill(false);
 
-  var dayBeforeItems = [
-    'Patient consuming bowel prep (if prescribed) — confirm verbally',
-    'Fleet enema ordered for day of surgery',
-    'Stoma marking completed by stoma nurse',
-  ];
-
   return '<div class="two-col"><div>' +
-
-    '<div class="card" style="border-color:var(--red-b);background:linear-gradient(135deg,rgba(239,68,68,.07) 0%,var(--sf) 60%);">' +
-    '<div class="ch" onclick="tc(this)" style="border-bottom-color:var(--red-b);">' +
-      '<div class="ctg">' +
-        '<div class="ci ci-r">\u26a0\ufe0f</div>' +
-        '<div><div class="ct" style="color:var(--red);">Day before surgery — high alert</div><div class="cs">Confirm on the morning ward round — time to react</div></div>' +
-      '</div>' +
-      '<div class="cv open">\u25be</div>' +
-    '</div>' +
-    '<div class="cb">' +
-      '<div class="flag flag-r" style="margin-bottom:12px;"><div class="fi">\ud83d\udea8</div><div class="fb"><div class="ft">Must be confirmed morning before operation</div><p>Check these on the morning ward round the day before surgery — early enough to act if anything is missing.</p></div></div>' +
-      dayBeforeItems.map(function(lbl, i) { return clItem('dbs-' + i, lbl, false); }).join('') +
-      '<div class="fg fr1" style="margin-top:10px;"><label>Morning ward round notes</label><textarea id="pr-nightbefore-notes" placeholder="e.g. Bowel prep taken. Fleet enema charted. Stoma marked by stoma nurse at 10am."></textarea></div>' +
-    '</div></div>' +
 
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-b">\u2705</div><div><div class="ct">Pre-op checklist</div><div class="cs">Tap each item to expand and complete</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb" style="padding:10px 12px;">' +
       '<div class="prog-wrap" style="margin-bottom:12px;"><div class="prog-row"><span class="prog-lbl">Completion</span><span class="prog-num" id="eras-pct">0 / 7</span></div><div class="prog-track"><div class="prog-fill" id="eras-bar" style="width:0%;background:var(--red);"></div></div></div>' +
 
-      // 1. Anaesthetic pre-assessment
-      preOpPanel('eras-0', '\ud83e\udeac', 'Anaesthetic pre-assessment completed',
+      // 1. Anaesthetic pre-assessment — HARD STOP
+      preOpPanel('eras-0', '\ud83e\udeac', '\u26d4 Anaesthetic pre-assessment — HARD STOP',
+        flag('r','\u26d4','Hard stop — cannot proceed to surgery without this','Patient must be reviewed by anaesthetist before listing for surgery. Document ASA, anaesthesia plan, and all high-risk medication decisions here.') +
         '<div class="fr">' +
           '<div class="fg"><label>Anaesthetist</label><input type="text" id="pr-anaes-cl" placeholder="e.g. Dr Sharifah Noriza"></div>' +
           '<div class="fg"><label>Date</label><input type="date" id="pr-anaes-date-cl"></div>' +
@@ -1611,8 +1648,9 @@ function buildPreop() {
         '<div class="fg fr1"><label>Notes</label><input type="text" id="stoma-nurse-notes" placeholder="e.g. Patient accepts stoma. Siting done. Counselled on care."></div>'
       ) +
 
-      // 3. Bowel prep
-      preOpPanel('eras-2', '\ud83d\udca7', 'Mechanical bowel prep prescribed',
+      // 3. Bowel prep — HARD STOP
+      preOpPanel('eras-2', '\ud83d\udca7', '\u26d4 Mechanical bowel prep — HARD STOP',
+        flag('r','\u26d4','Hard stop — bowel prep decision must be documented','Confirm whether bowel prep is prescribed or intentionally omitted. Do not leave blank before surgery.') +
         '<div class="fr">' +
           '<div class="fg"><label>Bowel prep?</label><div class="og" id="bp-cl-grp" style="margin-top:4px;">' + optBtn('Yes','bp-cl-grp','sel-g') + optBtn('No','bp-cl-grp','sel-r') + optBtn('N/A','bp-cl-grp','sel') + '</div></div>' +
           '<div class="fg"><label>Agent</label><select id="pr-bp-agent-cl"><option value="">Select</option><option>Moviprep (PEG)</option><option>Picolax</option><option>Klean-Prep</option></select></div>' +
@@ -1628,17 +1666,18 @@ function buildPreop() {
         '</div>'
       ) +
 
-      // 5. IMPACT — routine in all patients
-      preOpPanel('eras-4', '\ud83e\udd51', 'IMPACT immunonutrition',
-        '<div class="flag flag-g" style="margin-bottom:10px;"><div class="fi">\u2705</div><div class="fb"><div class="ft">Routine in all patients — our unit standard</div><p>IMPACT is prescribed for all patients undergoing elective colorectal resection. Confirm prescribed and patient started course.</p></div></div>' +
+      // 5. IMPACT — HARD STOP, routine in all patients
+      preOpPanel('eras-4', '\ud83e\udd51', '\u26d4 IMPACT immunonutrition — HARD STOP',
+        flag('r','\u26d4','Hard stop — IMPACT must be prescribed for all elective resections','Our unit standard. IMPACT is prescribed for all patients undergoing elective colorectal resection. Confirm prescribed and patient started course.') +
         '<div class="fr">' +
           '<div class="fg"><label>IMPACT prescribed?</label><div class="og" id="impact-cl-grp" style="margin-top:4px;">' + optBtn('Yes \u2713 — prescribed','impact-cl-grp','sel-g') + optBtn('Not yet','impact-cl-grp','sel-r') + '</div></div>' +
           '<div class="fg"><label>Duration</label><select id="pr-impact-dur"><option value="">Select</option><option>5 days pre-op</option><option>7 days pre-op</option><option>Already started</option></select></div>' +
         '</div>'
       ) +
 
-      // 6. Medications reviewed
-      preOpPanel('eras-5', '\ud83d\udc8a', 'Medications reviewed for day of surgery',
+      // 6. Medications reviewed — HARD STOP
+      preOpPanel('eras-5', '\ud83d\udc8a', '\u26d4 Medications review — HARD STOP',
+        flag('r','\u26d4','Hard stop — all medications must be reviewed before surgery','Document what is held, continued, or modified. Anticoagulants, antiplatelets, diabetic meds, ACE/ARB must each have a clear plan.') +
         '<div class="fg fr1"><label>Medication instructions</label><textarea id="pr-med-changes-cl" rows="3" placeholder="e.g. Hold Metformin. Continue antihypertensives with sip of water. Anticoagulant plan as per anaes review..."></textarea></div>' +
         '<div class="fr">' +
           '<div class="fg"><label>High-risk meds reviewed?</label><div class="og" id="highrisk-meds-cl" style="margin-top:4px;">' + optBtn('All reviewed \u2713','highrisk-meds-cl','sel-g') + optBtn('Pending','highrisk-meds-cl','sel-r') + '</div></div>' +
@@ -1687,7 +1726,7 @@ function buildSurgery() {
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-t">\u26a1</div><div><div class="ct">Intraoperative timeline</div><div class="cs">Log key steps, events, decisions</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       '<div class="fr" style="grid-template-columns:1fr 1fr;">' +
-        '<div class="fg"><label>Procedure performed</label><select id="sg-proc-done"><option value="">Select</option><option>Robotic LAR + TME</option><option>Robotic low LAR + TME + defunctioning ileostomy</option><option>Robotic APR</option><option>TaTME</option><option>Robotic right hemicolectomy</option><option>Extended right hemicolectomy</option><option>Sigmoid colectomy</option><option>Hartmann\'s procedure</option><option>Multivisceral resection</option></select></div>' +
+        '<div class="fg"><label>Procedure performed</label><select id="sg-proc-done"><option value="">Select</option><option>Robotic LAR</option><option>Robotic ULAR</option><option>Pelvic node dissection</option><option>Robotic APR</option><option>TaTME</option><option>Robotic right hemicolectomy</option><option>Extended right hemicolectomy</option><option>Sigmoid colectomy</option><option>Hartmann\'s procedure</option><option>Multivisceral resection</option></select></div>' +
         '<div class="fg"><label>Confirmed approach</label><select id="sg-approach-conf"><option value="">Select</option><option>Robotic \u2014 medial to lateral</option><option>Robotic \u2014 lateral to medial</option><option>Laparoscopic</option><option>Open</option><option>Converted to laparoscopic</option><option>Converted to open</option></select></div>' +
       '</div>' +
       '<div class="slbl">Add event</div>' +
@@ -1762,6 +1801,27 @@ function buildPostop() {
   ];
 
   return '<div class="two-col"><div>' +
+
+    // ── SMART WARD ROUND PANEL ──
+    '<div class="card" style="border-color:var(--blue-b);background:linear-gradient(135deg,rgba(59,130,246,.07) 0%,var(--sf) 60%);">' +
+    '<div class="ch" onclick="tc(this)" style="border-bottom-color:var(--blue-b);">' +
+      '<div class="ctg"><div class="ci ci-b">\ud83c\udfe5</div>' +
+      '<div><div class="ct" style="color:var(--blue);">Smart ward round</div>' +
+      '<div class="cs">Select today\'s POD — guided checks appear automatically</div></div></div>' +
+      '<div class="cv open">\u25be</div>' +
+    '</div>' +
+    '<div class="cb">' +
+      '<div class="fg">' +
+        '<label>Today is</label>' +
+        '<div class="og" id="wr-pod-grp" style="margin-top:6px;">' +
+          ['POD 1','POD 2','POD 3','POD 4','POD 5','POD 6+'].map(function(p) {
+            return optBtn(p, 'wr-pod-grp', 'sel');
+          }).join('') +
+        '</div>' +
+      '</div>' +
+      '<div id="wr-checklist" style="margin-top:8px;"></div>' +
+    '</div></div>' +
+
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-r">\ud83d\udd2c</div><div><div class="ct">FBC & CRP tracking</div><div class="cs">Enter daily results \u2014 rising CRP auto-flagged</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
@@ -2393,7 +2453,10 @@ function buildDietStage(i, icon, label, detail) {
         '</div>' +
       '</div>' +
       '<div class="fg fr1"><label>Notes</label><input type="text" id="diet-note-' + i + '" placeholder="e.g. Tolerated sips well. No nausea."></div>' +
-      '<button onclick="markDietDone(' + i + ')" style="margin-top:8px;width:100%;padding:7px;border-radius:var(--rs);border:1px solid var(--green-b);background:var(--green-l);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">\u2713 Mark stage achieved</button>' +
+      '<div style="display:flex;gap:7px;margin-top:8px;">' +
+        '<button id="diet-mark-btn-' + i + '" onclick="markDietDone(' + i + ')" style="flex:1;padding:7px;border-radius:var(--rs);border:1px solid var(--green-b);background:var(--green-l);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">\u2713 Mark stage achieved</button>' +
+        '<button id="diet-undo-btn-' + i + '" onclick="undoDietStage(' + i + ')" style="display:none;padding:7px 12px;border-radius:var(--rs);border:1px solid var(--red-b);background:var(--red-l);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">\u21ba Undo</button>' +
+      '</div>' +
     '</div>' +
   '</div>';
 }
@@ -2416,24 +2479,28 @@ function markDietDone(i) {
   var podSel = document.getElementById('diet-pod-sel-' + i);
   if (!podSel || !podSel.value) { toast('Select the POD first'); return; }
   dietStage = i;
-  // Mark all stages up to and including i as done
+  var labels = ['NBM','Sips','Free fluids','Light diet','Normal diet','Discharge diet'];
   for (var j = 0; j <= 5; j++) {
-    var row = document.getElementById('diet-' + j);
-    var box = document.getElementById('diet-box-' + j);
+    var row  = document.getElementById('diet-' + j);
+    var box  = document.getElementById('diet-box-' + j);
     var chev = document.getElementById('diet-chev-' + j);
     var body = document.getElementById('diet-body-' + j);
+    var markBtn = document.getElementById('diet-mark-btn-' + j);
+    var undoBtn = document.getElementById('diet-undo-btn-' + j);
     var done = j <= i;
     if (row) row.style.background = done ? 'rgba(34,197,94,.06)' : '';
     if (box) {
-      box.style.background   = done ? 'var(--green)' : '';
-      box.style.borderColor  = done ? 'var(--green)' : 'var(--hint)';
-      box.style.color        = done ? 'white' : '';
-      box.textContent        = done ? '\u2713' : '';
+      box.style.background  = done ? 'var(--green)' : '';
+      box.style.borderColor = done ? 'var(--green)' : 'var(--hint)';
+      box.style.color       = done ? 'white' : '';
+      box.textContent       = done ? '\u2713' : '';
     }
-    if (body && j === i) { body.style.display = 'none'; }
-    if (chev && j === i) { chev.style.transform = ''; }
+    // Show undo only on the current achieved stage
+    if (markBtn) markBtn.style.display = done ? 'none' : 'flex';
+    if (undoBtn) undoBtn.style.display = (j === i) ? 'flex' : 'none';
+    if (body && j === i) body.style.display = 'none';
+    if (chev && j === i) chev.style.transform = '';
   }
-  var labels = ['NBM','Sips','Free fluids','Light diet','Normal diet','Discharge diet'];
   var scEl = document.getElementById('sc-diet');
   if (scEl) scEl.textContent = labels[i] || 'NBM';
   var f = document.getElementById('diet-flag');
@@ -2443,10 +2510,48 @@ function markDietDone(i) {
     f.innerHTML = flag('g','\u2705','Discharge diet achieved','Patient eating independently. Proceed to discharge checklist.');
   }
   toast('\u2705 Diet: ' + labels[i] + ' \u2014 ' + podSel.value);
+  refreshWardRound();
 }
 
-// Keep advDiet for legacy toggleCL calls (diet- prefix)
-function advDiet(i) { toggleDietStage(i); }
+function undoDietStage(i) {
+  var labels = ['NBM','Sips','Free fluids','Light diet','Normal diet','Discharge diet'];
+  // Revert to previous stage (i-1), or -1 if undoing stage 0
+  var newStage = i - 1;
+  dietStage = newStage;
+
+  for (var j = 0; j <= 5; j++) {
+    var row  = document.getElementById('diet-' + j);
+    var box  = document.getElementById('diet-box-' + j);
+    var markBtn = document.getElementById('diet-mark-btn-' + j);
+    var undoBtn = document.getElementById('diet-undo-btn-' + j);
+    var podEl = document.getElementById('diet-pod-' + j);
+    var done = j <= newStage;
+    if (row) row.style.background = done ? 'rgba(34,197,94,.06)' : '';
+    if (box) {
+      box.style.background  = done ? 'var(--green)' : '';
+      box.style.borderColor = done ? 'var(--green)' : 'var(--hint)';
+      box.style.color       = done ? 'white' : '';
+      box.textContent       = done ? '\u2713' : '';
+    }
+    // Show undo on new current stage, mark button on undone stage
+    if (markBtn) markBtn.style.display = (j === i) ? 'flex' : (done ? 'none' : 'flex');
+    if (undoBtn) undoBtn.style.display = (j === newStage && newStage >= 0) ? 'flex' : 'none';
+    // Clear POD badge on undone stage
+    if (j === i && podEl) { podEl.textContent = ''; }
+  }
+
+  var scEl = document.getElementById('sc-diet');
+  if (scEl) scEl.textContent = newStage >= 0 ? labels[newStage] : 'NBM';
+  var f = document.getElementById('diet-flag');
+  if (f) {
+    if (newStage >= 0) {
+      f.innerHTML = flag('a','\u21ba','Reverted to: ' + labels[newStage],'Stage ' + labels[i] + ' was undone. Re-mark when patient tolerates.');
+    } else {
+      f.innerHTML = '';
+    }
+  }
+  toast('\u21ba Undone: ' + labels[i]);
+}
 
 var dietSetbacks = [];
 
@@ -2531,6 +2636,7 @@ function addMobEntry() {
   }
   document.getElementById('mob-notes').value = '';
   toast('\ud83d\udeb6 Mobilisation logged');
+  refreshWardRound();
 }
 
 function checkWoundStatus(val) {
@@ -2575,6 +2681,224 @@ function addWoundEntry() {
   }
   document.getElementById('wound-notes').value = '';
   toast('\ud83e\ude79 Wound review logged');
+}
+
+// ══════════════════════════════════════════════════════
+// SMART WARD ROUND — POD-specific guided decision trees
+// ══════════════════════════════════════════════════════
+
+function showWardRound(pod) {
+  var el = document.getElementById('wr-checklist');
+  if (!el) return;
+
+  var lastCRP  = labResults.length ? labResults[labResults.length-1].crp : null;
+  var prevCRP  = labResults.length > 1 ? labResults[labResults.length-2].crp : null;
+  var podNum   = parseInt(pod) || 0;
+
+  // ── Read live state from panels below ──────────────────
+  var cathRemoved  = !!document.querySelector('#cath-grp .sel-g');          // ✅ Removed
+  var cathRetained = !!document.querySelector('#cath-grp .sel-a');          // Retained with reason
+  var clexGiven    = !!document.querySelector('#clex-grp .sel-g');          // ✅ Given
+  var clexDeferred = !!document.querySelector('#clex-grp .sel-a');          // Deferred with reason
+  var abxNone      = !!document.querySelector('#abx-status-grp .sel-g');   // ✅ None running
+  var abxOral      = !!document.querySelector('#abx-status-grp .sel-t');   // Switched to oral
+  var abxRunning   = !!document.querySelector('#abx-status-grp .sel-r');   // ⚠️ IV running
+
+  // Mobilisation — check if today's POD logged with a positive result
+  var mobDone = mobLog.some(function(m) {
+    return m.pod === pod && m.level && m.level.indexOf('\u2713') > -1;
+  });
+
+  var items = [];
+  var allClear = true;
+
+  // ── CATHETER ───────────────────────────────────────────
+  if (podNum <= 2) {
+    if (cathRemoved) {
+      items.push({ icon: '\ud83d\udd35', title: 'Catheter', urgency: 'green',
+        steps: [{ action: 'green', msg: '\u2705 Catheter removed \u2014 document TWOC result if not done.' }] });
+    } else if (cathRetained) {
+      items.push({ icon: '\ud83d\udd35', title: 'Catheter', urgency: 'amber',
+        steps: [{ action: 'amber', msg: '\u26a0\ufe0f Catheter retained \u2014 ensure documented reason and target TWOC date are recorded.' }] });
+    } else {
+      allClear = false;
+      items.push({ icon: '\ud83d\udd35', title: 'Catheter', urgency: podNum === 1 ? 'red' : 'amber',
+        steps: podNum === 1
+          ? [{ action: 'red', msg: '\ud83d\udea8 POD 1 \u2014 catheter MUST be removed today.',
+              detail: 'Remove now \u2192 Document TWOC result in 4\u20136h \u2192 If unable to void: re-catheterise \u2192 Document \u201cFailed TWOC\u201d \u2192 Inform registrar.\nException: APR / pelvic nerve risk \u2014 document reason and target date.' }]
+          : [{ action: 'amber', msg: '\u26a0\ufe0f POD 2 \u2014 catheter overdue for removal.',
+              detail: 'Remove today unless documented reason. Update catheter status panel below.' }]
+      });
+    }
+  }
+
+  // ── CLEXANE ────────────────────────────────────────────
+  if (clexGiven) {
+    items.push({ icon: '\ud83d\udc89', title: 'Clexane', urgency: 'green',
+      steps: [{ action: 'green', msg: '\u2705 Clexane given today \u2014 VTE prophylaxis on track.' }] });
+  } else if (clexDeferred) {
+    items.push({ icon: '\ud83d\udc89', title: 'Clexane', urgency: 'amber',
+      steps: [{ action: 'amber', msg: '\u26a0\ufe0f Clexane deferred \u2014 ensure reason is documented and review tomorrow.' }] });
+  } else {
+    allClear = false;
+    items.push({ icon: '\ud83d\udc89', title: 'Clexane (VTE prophylaxis)', urgency: 'amber',
+      steps: [{ action: 'amber', msg: '\u26a0\ufe0f Clexane not yet documented for today.',
+        detail:
+          'Check drug chart now:\n' +
+          '\u2022 Hb stable (\u226580 g/L) \u2192 Give Clexane 40mg SC \u2192 Document time\n' +
+          '\u2022 Hb <80 or active bleeding \u2192 Discuss with registrar first \u2192 Document decision\n' +
+          'Omitting without a documented reason is NOT acceptable.' }]
+    });
+  }
+
+  // ── CRP (POD 3+) ───────────────────────────────────────
+  if (podNum >= 3) {
+    var crpUrgency = 'blue';
+    var crpSteps = [];
+    if (lastCRP === null) {
+      allClear = false;
+      crpSteps.push({ action: 'amber', msg: '\u26a0\ufe0f CRP not entered for today \u2014 required for POD ' + podNum + '.' });
+      crpUrgency = 'amber';
+    } else if (lastCRP > 150 && prevCRP !== null && lastCRP >= prevCRP) {
+      allClear = false;
+      crpUrgency = 'red';
+      crpSteps.push({ action: 'red',
+        msg: '\ud83d\udea8 CRP ' + lastCRP + ' mg/L \u2014 not falling on POD ' + podNum + '. Exclude anastomotic leak.',
+        detail:
+          'Assess in this order:\n' +
+          '1. Fever >38\u00b0C? Tachycardia >100? \u2192 If yes \u2192 escalate immediately\n' +
+          '2. Peritonism or guarding? \u2192 If yes \u2192 call registrar now\n' +
+          '3. Drain output faeculent or turbid? \u2192 If yes \u2192 call registrar now\n' +
+          '4. All negative but CRP rising \u2192 discuss CT with registrar\n' +
+          '5. Do NOT start antibiotics without documented source and senior approval'
+      });
+    } else if (lastCRP > 80 && podNum >= 4 && prevCRP !== null && lastCRP >= prevCRP) {
+      crpUrgency = 'amber';
+      crpSteps.push({ action: 'amber',
+        msg: '\u26a0\ufe0f CRP ' + lastCRP + ' mg/L on POD ' + podNum + ' \u2014 not falling as expected.',
+        detail: 'Yesterday: ' + prevCRP + ' \u2192 Today: ' + lastCRP + '. Review for occult source. Inform registrar if trend continues tomorrow.'
+      });
+    } else {
+      crpSteps.push({ action: 'green',
+        msg: '\u2705 CRP ' + lastCRP + ' mg/L' + (prevCRP ? ' (was ' + prevCRP + ') \u2014 falling as expected.' : ' \u2014 recorded.')
+      });
+    }
+    items.push({ icon: '\ud83e\ude78', title: 'CRP trend', urgency: crpUrgency, steps: crpSteps });
+  }
+
+  // ── DIET ───────────────────────────────────────────────
+  var dietLabels = ['NBM','Sips','Free fluids','Light diet','Normal diet','Discharge diet'];
+  var expected = Math.min(podNum, 5);
+  var currentDietLabel = dietStage >= 0 ? dietLabels[dietStage] : 'NBM';
+  var dietUrgency = 'green';
+  var dietSteps = [];
+
+  if (dietStage >= expected) {
+    dietSteps.push({ action: 'green', msg: '\u2705 Diet: ' + currentDietLabel + ' \u2014 on track for POD ' + podNum + '.' });
+  } else {
+    allClear = false;
+    dietUrgency = 'amber';
+    dietSteps.push({ action: 'amber',
+      msg: '\u26a0\ufe0f Diet: ' + currentDietLabel + ' \u2014 expected ' + dietLabels[expected] + ' by POD ' + podNum + '.',
+      detail:
+        'Ask the patient:\n' +
+        '1. Nausea or vomiting? \u2192 If yes \u2192 check for ileus (bowel sounds? distension?)\n' +
+        '2. Tolerating current diet? \u2192 If yes \u2192 advance now and mark in diet panel below\n' +
+        '3. NGT in? \u2192 Check 4h aspirate \u2192 If <200mL \u2192 remove and advance\n' +
+        'If not advancing: document clinical reason in notes.'
+    });
+  }
+  items.push({ icon: '\ud83c\udf7d\ufe0f', title: 'Diet progression', urgency: dietUrgency, steps: dietSteps });
+
+  // ── IV ANTIBIOTICS (POD 2+) ────────────────────────────
+  if (podNum >= 2) {
+    if (abxNone || abxOral) {
+      items.push({ icon: '\ud83e\udda0', title: 'IV antibiotics', urgency: 'green',
+        steps: [{ action: 'green', msg: '\u2705 ' + (abxOral ? 'Switched to oral antibiotics \u2014 confirm stop date documented.' : 'No IV antibiotics running \u2014 good stewardship.') }] });
+    } else if (abxRunning) {
+      allClear = false;
+      items.push({ icon: '\ud83e\udda0', title: 'IV antibiotic stewardship', urgency: 'red',
+        steps: [{ action: 'red',
+          msg: '\ud83d\udea8 IV antibiotics running on POD ' + podNum + ' \u2014 document indication now.',
+          detail:
+            'Confirmed source required:\n' +
+            '\u2022 Wound infection: cellulitis / discharge \u2192 document + swab\n' +
+            '\u2022 Chest infection: productive cough / CXR change \u2192 document\n' +
+            '\u2022 UTI: symptoms + positive culture \u2192 document\n' +
+            '\u2022 Anastomotic leak: CRP rising + peritonism \u2192 see leak protocol\n' +
+            'No confirmed source \u2192 Stop now \u2192 Document: \u201cNo active infection. IV antibiotics discontinued.\u201d\n' +
+            'Post-op fever alone is NOT an indication.'
+        }]
+      });
+    } else {
+      // Not yet documented
+      allClear = false;
+      items.push({ icon: '\ud83e\udda0', title: 'IV antibiotics', urgency: 'amber',
+        steps: [{ action: 'amber', msg: '\u26a0\ufe0f IV antibiotic status not yet documented today. Update the panel below.' }] });
+    }
+  }
+
+  // ── MOBILISATION (POD 1–4) ─────────────────────────────
+  if (podNum <= 4) {
+    var mobTarget = { 1:'Sit out of bed \u22652h + short walk', 2:'Walk corridor twice', 3:'Walk independently', 4:'Walk independently \u2014 escalate if not achieved' };
+    if (mobDone) {
+      items.push({ icon: '\ud83d\udeb6', title: 'Mobilisation', urgency: 'green',
+        steps: [{ action: 'green', msg: '\u2705 Mobilisation logged for today \u2014 ' + pod + ' target met.' }] });
+    } else {
+      allClear = false;
+      items.push({ icon: '\ud83d\udeb6', title: 'Mobilisation', urgency: 'blue',
+        steps: [{ action: 'blue',
+          msg: '\ud83d\udeb6 POD ' + podNum + ' target: ' + (mobTarget[podNum] || 'Walk independently') + '. Not yet logged today.',
+          detail:
+            'If not mobilised \u2014 document barrier in mobilisation panel below:\n' +
+            '\u2022 Pain \u2192 optimise analgesia then mobilise\n' +
+            '\u2022 Fatigue \u2192 acceptable, document and ensure tomorrow\n' +
+            '\u2022 Lines/drains \u2192 remove unnecessary ones first\n' +
+            '\u2022 Patient refusing \u2192 document and escalate if persistent'
+        }]
+      });
+    }
+  }
+
+  // ── RENDER ─────────────────────────────────────────────
+  var urgencyConfig = {
+    red:   { bg:'var(--red-l)',   bd:'var(--red-b)',   tc:'var(--red)',   icon:'\ud83d\udea8' },
+    amber: { bg:'var(--amber-l)', bd:'var(--amber-b)', tc:'var(--amber)', icon:'\u26a0\ufe0f' },
+    green: { bg:'var(--green-l)', bd:'var(--green-b)', tc:'var(--green)', icon:'\u2705' },
+    blue:  { bg:'var(--blue-l)',  bd:'var(--blue-b)',  tc:'var(--blue)',  icon:'\u2139\ufe0f' },
+  };
+
+  // Count outstanding items
+  var pending = items.filter(function(i) { return i.urgency !== 'green'; }).length;
+  var headerColor = pending === 0 ? 'var(--green)' : pending >= 3 ? 'var(--red)' : 'var(--amber)';
+  var headerIcon  = pending === 0 ? '\u2705' : '\ud83c\udfe5';
+  var headerMsg   = pending === 0
+    ? 'All ' + pod + ' checks satisfied \u2014 good work!'
+    : pending + ' item' + (pending > 1 ? 's' : '') + ' need attention on ' + pod;
+
+  el.innerHTML =
+    '<div style="padding:8px 12px;border-radius:var(--rs);background:rgba(0,0,0,.15);margin-bottom:10px;display:flex;align-items:center;gap:8px;">' +
+      '<span style="font-size:16px;">' + headerIcon + '</span>' +
+      '<span style="font-size:12px;font-weight:700;color:' + headerColor + ';">' + headerMsg + '</span>' +
+    '</div>' +
+    items.map(function(item) {
+      var cfg = urgencyConfig[item.urgency] || urgencyConfig.blue;
+      // Collapse green items by default — they're done
+      var isGreen = item.urgency === 'green';
+      return '<div style="background:' + cfg.bg + ';border:1px solid ' + cfg.bd + ';border-radius:var(--rs);padding:10px 13px;margin-bottom:6px;' + (isGreen ? 'opacity:0.7;' : '') + '">' +
+        '<div style="font-size:11.5px;font-weight:700;color:' + cfg.tc + ';margin-bottom:' + (item.steps[0].detail ? '6px' : '0') + ';">' +
+          item.icon + ' ' + item.title + ' \u2014 ' + item.steps[0].msg +
+        '</div>' +
+        (item.steps[0].detail
+          ? '<div style="font-size:11px;color:#cbd5e1;line-height:1.7;white-space:pre-line;background:rgba(0,0,0,.15);border-radius:6px;padding:8px 10px;">' + item.steps[0].detail + '</div>'
+          : '') +
+      '</div>';
+    }).join('');
+}
+
+function refreshWardRound() {
+  var activeBtn = document.querySelector('#wr-pod-grp .sel');
+  if (activeBtn) showWardRound(activeBtn.textContent.trim());
 }
 
 function renderDietSetbacks() {
@@ -2705,7 +3029,7 @@ function createCase() {
   var age  = document.getElementById('nc-age')  ? document.getElementById('nc-age').value  : '';
   var sex  = document.getElementById('nc-sex')  ? document.getElementById('nc-sex').value  : '';
   var dxDate = document.getElementById('nc-dx') ? document.getElementById('nc-dx').value   : '';
-  if (!proc || !age || !sex || !dxDate) { toast('\u26a0 Fill all required fields'); return; }
+  if (!proc) { toast('\u26a0 Select a procedure to generate case ID'); return; }
   var id = document.getElementById('nc-id-prev') ? document.getElementById('nc-id-prev').getAttribute('data-id') : null;
   if (!id) { toast('\u26a0 Select procedure to generate ID'); return; }
   var procSel = document.getElementById('nc-proc');
@@ -2715,10 +3039,10 @@ function createCase() {
     proc: proc,
     procLabel: procLabel,
     site: document.getElementById('nc-site') ? document.getElementById('nc-site').value : '',
-    age: parseInt(age),
-    sex: sex,
+    age: age ? parseInt(age) : null,
+    sex: sex || '',
     tnm: document.getElementById('nc-tnm') ? document.getElementById('nc-tnm').value : '',
-    dxDate: dxDate,
+    dxDate: dxDate || '',
     surgeon: document.getElementById('nc-surgeon') ? document.getElementById('nc-surgeon').value : curUser.name,
     status: 'preop',
     alert: false,
@@ -2987,7 +3311,7 @@ function tc(hdr) {
 function selGrpEl(el, grpId, cls) {
   var grp = document.getElementById(grpId);
   if (!grp) return;
-  grp.querySelectorAll('.opt').forEach(function(b) { b.classList.remove('sel','sel-g','sel-r','sel-a','sel-t'); });
+  grp.querySelectorAll('.opt').forEach(function(b) { b.classList.remove('sel','sel-g','sel-r','sel-a','sel-t','sel-b'); });
   el.classList.add(cls);
   // Med note panel show/hide
   var noteMap = {'sglt2-grp':'sglt2-note','dm-med-grp':'dm-note','ace-grp':'ace-note','antiplatelet-grp':'antiplatelet-note','anticoag-grp':'anticoag-note'};
@@ -2999,6 +3323,21 @@ function selGrpEl(el, grpId, cls) {
   if (grpId === 'abx-status-grp') {
     var statusMap = {'sel-g':'none', 'sel-r':'running', 'sel-t':'oral'};
     setAbxFlag(statusMap[cls] || 'none');
+  }
+  // Presentation type toggle
+  if (grpId === 'p-presentation-grp') {
+    if (cls === 'sel-g') onPresentationType('elective');
+    else if (cls === 'sel-r') onPresentationType('emergency');
+    else onPresentationType('other');
+  }
+  // Smart ward round POD selector
+  if (grpId === 'wr-pod-grp') {
+    showWardRound(el.textContent.trim());
+  }
+  // Refresh ward round when relevant panels are updated
+  var liveRefreshGroups = ['cath-grp','clex-grp','abx-status-grp'];
+  if (liveRefreshGroups.indexOf(grpId) > -1) {
+    refreshWardRound();
   }
 }
 
@@ -3078,7 +3417,7 @@ function triggerAutosave() {
   showAutosaveStatus('saving');
   autosaveTimer = setTimeout(function() {
     doAutosave();
-  }, 1200); // 1.2s debounce
+  }, 300);
 }
 
 function doAutosave() {
@@ -3128,12 +3467,12 @@ function showAutosaveStatus(state) {
   var el = document.getElementById('autosave-status');
   if (!el) return;
   if (state === 'saving') {
-    el.innerHTML = '<span style="color:var(--hint);">&#8635; Saving...</span>';
+    el.innerHTML = '<span style="color:var(--hint);display:flex;align-items:center;gap:4px;"><span style="font-size:13px;">&#8635;</span> Saving...</span>';
   } else {
-    el.innerHTML = '<span style="color:var(--green);">&#10003; Saved</span>';
+    el.innerHTML = '<span style="color:var(--green);display:flex;align-items:center;gap:4px;"><span style="font-size:13px;">&#10003;</span> Saved</span>';
     setTimeout(function() {
       if (el) el.innerHTML = '';
-    }, 2500);
+    }, 4000);
   }
 }
 
@@ -3225,16 +3564,72 @@ function mergeCase(local, incoming) {
   return merged;
 }
 
-// ── Export modal ──
-function openExportModal() {
-  if (!curCase) { toast('Open a case first'); return; }
-  saveCurrentMod && curMod && saveCurrentMod();
-  var code = encodeCase(curCase);
+// ── Encode / decode — supports single case AND full database ──
+function encodeAll() {
+  var activeCases = cases.filter(function(c) { return !c.deleted; });
+  var payload = JSON.stringify({
+    v: 2,
+    type: 'full',
+    ts: Date.now(),
+    author: curUser.name,
+    count: activeCases.length,
+    cases: activeCases
+  });
+  return 'SL3:' + toBase64(xorStr(payload, SYNC_KEY));
+}
+
+function encodeSingle(c) {
+  var payload = JSON.stringify({
+    v: 2,
+    type: 'single',
+    ts: Date.now(),
+    author: curUser.name,
+    case: c
+  });
+  return 'SL2:' + toBase64(xorStr(payload, SYNC_KEY));
+}
+
+function decodeSync(str) {
+  try {
+    str = str.trim();
+    if (str.startsWith('SL3:')) {
+      var raw = xorStr(fromBase64(str.slice(4)), SYNC_KEY);
+      return JSON.parse(raw); // type: 'full'
+    } else if (str.startsWith('SL2:')) {
+      var raw = xorStr(fromBase64(str.slice(4)), SYNC_KEY);
+      var parsed = JSON.parse(raw);
+      parsed.type = parsed.type || 'single';
+      return parsed;
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
+// ── Export modal — choose full or single ──
+function openExportModal(mode) {
+  mode = mode || 'full';
   var mo = document.getElementById('mo-sync-export');
+  var ts = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  var code, label, subLabel;
+
+  if (mode === 'full') {
+    var activeCases = cases.filter(function(c) { return !c.deleted; });
+    code = encodeAll();
+    label = 'All cases (' + activeCases.length + ' patients)';
+    subLabel = 'Full database export — all active cases';
+  } else {
+    if (!curCase) { toast('Open a case first for single export'); return; }
+    if (curMod) saveCurrentMod();
+    code = encodeSingle(curCase);
+    label = curCase.id + ' \u2014 ' + curCase.procLabel;
+    subLabel = 'Single case export';
+  }
+
   document.getElementById('sync-export-code').value = code;
   document.getElementById('sync-export-who').textContent = curUser.name;
-  document.getElementById('sync-export-id').textContent  = curCase.id;
-  document.getElementById('sync-export-ts').textContent  = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('sync-export-id').textContent  = label;
+  document.getElementById('sync-export-ts').textContent  = ts;
+  document.getElementById('sync-export-sub').textContent = subLabel;
   mo.style.display = 'flex';
 }
 
@@ -3253,8 +3648,8 @@ function copyExportCode() {
 
 function shareToTeams() {
   var code = document.getElementById('sync-export-code') ? document.getElementById('sync-export-code').value : '';
-  var msg = encodeURIComponent('[SurgLog] ' + curCase.id + ' \u2014 ' + curCase.procLabel + '\n' + code);
-  // Opens Teams share — works on mobile Teams app
+  var label = document.getElementById('sync-export-id') ? document.getElementById('sync-export-id').textContent : 'SurgLog';
+  var msg = encodeURIComponent('[SurgLog sync] ' + label + '\n' + code);
   window.open('https://teams.microsoft.com/share?text=' + msg, '_blank');
   toast('\ud83d\udce4 Opening Teams...');
 }
@@ -3273,35 +3668,47 @@ function previewImport() {
   var btn = document.getElementById('sync-import-btn');
   if (!raw) { preview.innerHTML = ''; btn.disabled = true; return; }
 
-  // Find SL2: code in pasted text (user may paste full Teams message)
-  var match = raw.match(/SL2:[A-Za-z0-9+/=]+/);
+  var match = raw.match(/SL[23]:[A-Za-z0-9+\/=]+/);
   if (!match) {
-    preview.innerHTML = '<div class="flag flag-r" style="margin-top:8px;"><div class="fi">\u274c</div><div class="fb"><div class="ft">Not a valid SurgLog code</div><p>Make sure you copied the full SL2:... code from Teams.</p></div></div>';
+    preview.innerHTML = '<div class="flag flag-r" style="margin-top:8px;"><div class="fi">\u274c</div><div class="fb"><div class="ft">Not a valid SurgLog code</div><p>Make sure you copied the full SL2: or SL3: code from Teams.</p></div></div>';
     btn.disabled = true;
     return;
   }
 
-  var decoded = decodeCase(match[0]);
+  var decoded = decodeSync(match[0]);
   if (!decoded) {
     preview.innerHTML = '<div class="flag flag-r" style="margin-top:8px;"><div class="fi">\u274c</div><div class="fb"><div class="ft">Could not decode</div><p>The code may be corrupted. Ask the sender to re-export.</p></div></div>';
     btn.disabled = true;
     return;
   }
 
-  var c = decoded.case;
   var ts = new Date(decoded.ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  var local = cases.find(function(x) { return x.id === c.id; });
-  var conflict = local && local._lastSync && decoded.ts < local._lastSync;
 
-  preview.innerHTML =
-    '<div class="flag flag-' + (conflict ? 'a' : 'g') + '" style="margin-top:8px;">' +
-      '<div class="fi">' + (conflict ? '\u26a0\ufe0f' : '\u2705') + '</div>' +
-      '<div class="fb">' +
+  if (decoded.type === 'full') {
+    var incoming = decoded.cases || [];
+    var newCount = 0, mergeCount = 0;
+    incoming.forEach(function(c) {
+      if (!cases.find(function(x) { return x.id === c.id; })) newCount++;
+      else mergeCount++;
+    });
+    preview.innerHTML =
+      '<div class="flag flag-g" style="margin-top:8px;"><div class="fi">\u2705</div><div class="fb">' +
+        '<div class="ft">Full database — ' + incoming.length + ' cases from ' + decoded.author + '</div>' +
+        '<p>Exported at ' + ts + '</p>' +
+        '<p>\ud83d\udfe2 ' + newCount + ' new cases to add &nbsp;\u00b7&nbsp; \ud83d\udd04 ' + mergeCount + ' existing cases to merge</p>' +
+      '</div></div>';
+  } else {
+    var c = decoded.case;
+    var local = cases.find(function(x) { return x.id === c.id; });
+    var conflict = local && local._lastSync && decoded.ts < local._lastSync;
+    preview.innerHTML =
+      '<div class="flag flag-' + (conflict ? 'a' : 'g') + '" style="margin-top:8px;"><div class="fi">' + (conflict ? '\u26a0\ufe0f' : '\u2705') + '</div><div class="fb">' +
         '<div class="ft">' + c.id + ' \u2014 ' + c.procLabel + '</div>' +
         '<p>Exported by <b>' + decoded.author + '</b> at ' + ts + '</p>' +
-        (conflict ? '<p style="color:var(--amber);">\u26a0\ufe0f You have a newer local version. Importing will merge \u2014 your newer fields are kept.</p>' : '<p>No conflicts detected. Safe to import.</p>') +
-      '</div>' +
-    '</div>';
+        (conflict ? '<p style="color:var(--amber);">\u26a0\ufe0f You have a newer local version. Your newer fields will be kept.</p>' : '<p>No conflicts. Safe to import.</p>') +
+      '</div></div>';
+  }
+
   btn.disabled = false;
   btn.setAttribute('data-code', match[0]);
 }
@@ -3309,38 +3716,56 @@ function previewImport() {
 function doImport() {
   var code = document.getElementById('sync-import-btn').getAttribute('data-code');
   if (!code) return;
-  var decoded = decodeCase(code);
+  var decoded = decodeSync(code);
   if (!decoded) { toast('Import failed'); return; }
 
-  var incoming = decoded;
-  var c = incoming.case;
-  var localIdx = cases.findIndex(function(x) { return x.id === c.id; });
+  if (decoded.type === 'full') {
+    var incoming = decoded.cases || [];
+    var newCount = 0, mergeCount = 0;
+    incoming.forEach(function(inCase) {
+      var localIdx = cases.findIndex(function(x) { return x.id === inCase.id; });
+      if (localIdx === -1) {
+        cases.push(inCase);
+        newCount++;
+      } else {
+        // Wrap as single-case payload for mergeCase
+        var wrapped = { ts: decoded.ts, author: decoded.author, case: inCase };
+        cases[localIdx] = mergeCase(cases[localIdx], wrapped);
+        mergeCount++;
+      }
+    });
+    saveState();
+    closeMo('mo-sync-import');
+    renderDash();
+    renderCases();
+    toast('\u2705 ' + newCount + ' new + ' + mergeCount + ' merged — database updated');
 
-  if (localIdx === -1) {
-    // New case — just add it
-    cases.unshift(c);
-    toast('\u2705 New case imported: ' + c.id);
   } else {
-    // Merge
-    var merged = mergeCase(cases[localIdx], incoming);
-    cases[localIdx] = merged;
-    toast('\u2705 Merged: ' + c.id + ' \u2014 by ' + incoming.author);
+    var incoming = decoded;
+    var c = incoming.case;
+    var localIdx = cases.findIndex(function(x) { return x.id === c.id; });
+    if (localIdx === -1) {
+      cases.unshift(c);
+      toast('\u2705 New case imported: ' + c.id);
+    } else {
+      cases[localIdx] = mergeCase(cases[localIdx], incoming);
+      toast('\u2705 Merged: ' + c.id);
+    }
+    saveState();
+    closeMo('mo-sync-import');
+    renderDash();
+    renderCases();
   }
-
-  saveState();
-  closeMo('mo-sync-export');
-  closeMo('mo-sync-import');
-  renderDash();
-  renderCases();
 }
 
-// ── Add sync buttons to topbar ──
+// ── Sync buttons in topbar ──
 function addSyncButtons() {
   var tb = document.getElementById('tb-sync-btns');
   if (!tb) return;
   tb.innerHTML =
     '<button class="btn" onclick="openImportModal()" style="font-size:11px;padding:5px 10px;">\u2b07\ufe0f Import</button>' +
-    '<button class="btn btn-p" onclick="openExportModal()" style="font-size:11px;padding:5px 10px;">\ud83d\udce4 Sync to Teams</button>';
+    '<button class="btn btn-p" onclick="openExportModal(\'full\')" style="font-size:11px;padding:5px 10px;">\ud83d\udce4 Sync all</button>' +
+    '<button class="btn" onclick="openExportModal(\'single\')" style="font-size:11px;padding:5px 10px;border-color:var(--teal-b);color:var(--teal);">\ud83d\udcc4 This case</button>';
 }
 
 // ── INIT ──
@@ -3349,6 +3774,8 @@ document.getElementById('dash-date').textContent = new Date().toLocaleDateString
 document.getElementById('handover-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 renderDash();
 addSyncButtons();
+// Show saved status on load so user knows autosave is active
+if (cases.length) showAutosaveStatus('saved');
 
 </script>
 
@@ -3356,14 +3783,14 @@ addSyncButtons();
 <div class="mo" id="mo-sync-export" style="display:none;">
   <div class="mo-box" style="max-width:480px;">
     <div class="mo-title">📤 Sync to Teams</div>
-    <div class="mo-sub">Copy this code and paste it into your Teams surgical channel</div>
+    <div class="mo-sub" id="sync-export-sub">Export cases</div>
     <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--rs);padding:10px 13px;margin-bottom:12px;">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Case · Exported by · Time</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Exported by · Time</div>
       <div style="font-size:13px;font-weight:700;font-family:var(--mono);">
-        <span id="sync-export-id" style="color:var(--blue);"></span>
-        &nbsp;·&nbsp;<span id="sync-export-who"></span>
+        <span id="sync-export-who"></span>
         &nbsp;·&nbsp;<span id="sync-export-ts"></span>
       </div>
+      <div style="font-size:12px;color:var(--blue);margin-top:3px;font-weight:600;" id="sync-export-id"></div>
     </div>
     <div class="fg">
       <label>Sync code — copy all of this</label>
@@ -3372,7 +3799,7 @@ addSyncButtons();
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
       <button class="btn btn-p" onclick="copyExportCode()" style="width:100%;padding:11px;font-size:13px;">📋 Copy code</button>
       <button class="btn" onclick="shareToTeams()" style="width:100%;padding:11px;font-size:13px;border-color:var(--purple-b);color:var(--purple);">💬 Share directly to Teams</button>
-      <div style="font-size:11px;color:var(--hint);text-align:center;line-height:1.5;">Paste into your Teams channel. Teammates paste it into Import to load this case.</div>
+      <div style="font-size:11px;color:var(--hint);text-align:center;line-height:1.5;">Paste the code into your Teams channel. Teammates paste it into Import to load all cases.</div>
     </div>
     <div class="mo-actions"><button class="btn" onclick="closeMo('mo-sync-export')" style="flex:1;">Done</button></div>
   </div>
