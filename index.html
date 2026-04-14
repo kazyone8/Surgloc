@@ -2850,24 +2850,47 @@ function buildSurgery() {
 
 function buildPostop() {
   
-  dcDone = new Array(14).fill(false);
+  // Determine if patient has stoma from preop/surgery data
+  var hasStormaForDc = false;
+  if (curCase && curCase.data) {
+    var preD = curCase.data.preop || {};
+    var sgD  = curCase.data.surgery || {};
+    hasStormaForDc = (preD['stoma-ant-cl'] && preD['stoma-ant-cl'].indexOf('Yes') > -1) ||
+                     (sgD['sg-anastomosis'] && sgD['sg-anastomosis'].indexOf('end stoma') > -1);
+  }
 
-  var dcItems = [
+  // Determine histology status
+  var histoAvailable = curCase && curCase.histoAvailable;
+
+  var dcItemsBase = [
     ['Tolerating oral diet independently', true],
-    ['Stoma functioning \u2014 output 400\u20131200mL/day', true],
-    ['Stoma education done \u2014 patient confident', true],
     ['Pain controlled on oral analgesia \u2014 opioid weaned', true],
     ['Wound reviewed \u2014 no active infection', true],
     ['Urinary catheter removed \u2014 voiding independently', true],
-    ['Clexane course prescribed for home', true],
     ['Drain removed (if applicable)', false],
     ['CRP trending down', false],
     ['Ambulating independently', false],
     ['Discharge medications prescribed and counselled', true],
     ['Outpatient follow-up booked', true],
-    ['Histology \u2014 result actioned or follow-up plan documented', false],
-    ['GP / community nurse notified', false],
   ];
+
+  // Stoma items — only if stoma present
+  if (hasStormaForDc) {
+    dcItemsBase.splice(1, 0,
+      ['Stoma functioning \u2014 output 400\u20131200mL/day', true],
+      ['Stoma education done \u2014 patient confident', true]
+    );
+  }
+
+  // Histology — context-aware
+  if (histoAvailable) {
+    dcItemsBase.push(['Histology available \u2014 result reviewed, post-op MDT booked', true]);
+  } else {
+    dcItemsBase.push(['Histology pending \u2014 ensure outpatient MDT follow-up plan documented', false]);
+  }
+
+  var dcItems = dcItemsBase;
+  dcDone = new Array(dcItems.length).fill(false);
 
   return '<div class="two-col"><div>' +
 
@@ -3199,32 +3222,86 @@ function buildPostop() {
       '<div class="fg fr1" style="margin-top:6px;"><label>Management plan — document clearly</label><textarea id="leak-plan" rows="3" placeholder="e.g. Grade B leak POD 4. NBM. IV Tazocin commenced. CT shows 3cm pelvic collection. IR drainage planned tomorrow. Consultant aware. Daily review."></textarea></div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-a">\ud83d\udd04</div><div><div class="ct">Ileus protocol</div><div class="cs">Unit stepwise management \u2014 follow in sequence</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-a">\ud83d\udd04</div><div><div class="ct">Ileus protocol</div><div class="cs">Concurrent management — all measures simultaneously</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
-      flag('b','\u2139\ufe0f','Diagnosis of exclusion \u2014 always exclude mechanical obstruction first',
-        'Suspect mechanical obstruction if: colicky abdominal pain + patient was tolerating diet + sudden onset vomiting. '
-        + 'If this pattern present \u2014 order CT/AXR urgently before proceeding with ileus protocol.') +
-      '<div class="fr" style="margin-top:10px;">' +
-        '<div class="fg"><label>POD of diagnosis</label><select id="ileus-pod"><option value="">Select</option><option>POD 2</option><option>POD 3</option><option>POD 4</option><option>POD 5</option><option>POD 6</option><option>POD 7+</option></select></div>' +
-        '<div class="fg"><label>Current step</label><select id="ileus-step" onchange="showIleusStep(this.value)"><option value="">Select step</option><option value="1">Step 1 \u2014 Metoclopramide (routine)</option><option value="2">Step 2 \u2014 Mobilisation</option><option value="3">Step 3 \u2014 Bowel rest + NGT</option><option value="4">Step 4 \u2014 IV fluids + electrolytes</option><option value="5">Step 5 \u2014 Exclude obstruction</option><option value="6">Step 6 \u2014 TPN + senior review</option></select></div>' +
-      '</div>' +
-      '<div id="ileus-step-detail" style="margin-top:8px;"></div>' +
-      '<div class="fr" style="margin-top:8px;">' +
-        '<div class="fg"><label>Metoclopramide contraindication?</label>' +
-          '<div class="og" id="metro-ci-grp" style="margin-top:4px;">' +
-            optBtn('No CI \u2014 give \u2713','metro-ci-grp','sel-g') +
-            optBtn('Suspected obstruction','metro-ci-grp','sel-r') +
-            optBtn('Parkinson\'s / extrapyramidal','metro-ci-grp','sel-r') +
-            optBtn('Prior reaction','metro-ci-grp','sel-r') +
+
+      flag('r','\ud83d\udea8','Always exclude mechanical obstruction first',
+        'Suspect mechanical obstruction if: colicky pain + was tolerating diet + sudden vomiting. '
+        + 'Order CT abdomen/pelvis urgently. Also exclude anastomotic leak if CRP rising. '
+        + 'Do NOT manage as ileus while missing a surgical emergency.') +
+
+      '<details style="margin:10px 0;">' +
+        '<summary style="font-size:11.5px;color:var(--blue);font-weight:600;cursor:pointer;padding:6px 10px;background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--rs);list-style:none;">' +
+          '\ud83d\udcd6 Ileus management — all measures concurrently (tap to expand)' +
+        '</summary>' +
+        '<div style="margin-top:6px;padding:12px;border:1px solid var(--bd);border-radius:var(--rs);font-size:12px;line-height:1.9;">' +
+
+          '<div style="font-weight:800;color:var(--text);margin-bottom:6px;">\u26a1 Start ALL of these simultaneously — not one by one:</div>' +
+
+          '<div style="padding:8px 10px;background:var(--blue-l);border-radius:var(--rs);border-left:3px solid var(--blue);margin-bottom:6px;">' +
+            '<b style="color:var(--blue);">1. Metoclopramide</b><br>' +
+            '<span style="color:var(--muted);">10mg TDS IV/oral unless contraindicated (Parkinson\'s, suspected obstruction, prior reaction).<br>' +
+            'Give routinely POD 0\u20133. Document if withheld and reason.</span>' +
           '</div>' +
+
+          '<div style="padding:8px 10px;background:var(--teal-l,var(--green-l));border-radius:var(--rs);border-left:3px solid var(--teal,var(--green));margin-bottom:6px;">' +
+            '<b style="color:var(--green);">2. Aggressive mobilisation</b><br>' +
+            '<span style="color:var(--muted);">Out of bed TDS with physiotherapy. Walking directly stimulates gut motility.<br>' +
+            'Sitting in chair is NOT sufficient \u2014 must ambulate. Document distance and frequency.</span>' +
+          '</div>' +
+
+          '<div style="padding:8px 10px;background:var(--amber-l);border-radius:var(--rs);border-left:3px solid var(--amber);margin-bottom:6px;">' +
+            '<b style="color:var(--amber);">3. Electrolyte correction</b><br>' +
+            '<span style="color:var(--muted);">Check and aggressively correct: K\u207a (target >3.5), Mg\u00b2\u207a (>0.8), PO\u2084, Na\u207a.<br>' +
+            'IV fluid 1:1 replacement of NGT output if tube in situ.<br>' +
+            'Stop gut motility inhibitors: step down opioids, stop anticholinergics, Ca-channel blockers.</span>' +
+          '</div>' +
+
+          '<div style="padding:8px 10px;background:var(--amber-l);border-radius:var(--rs);border-left:3px solid var(--amber);margin-bottom:6px;">' +
+            '<b style="color:var(--amber);">4. NGT — only if clinically indicated</b><br>' +
+            '<span style="color:var(--muted);">Insert NGT if: <b>abdominal distension + vomiting together</b>. Check with senior before insertion.<br>' +
+            'Do NOT insert routinely for nausea alone or mild distension without vomiting.<br>' +
+            'Once in: record aspirate 4-hourly. Remove when aspirate &lt;200mL/4h and bowel sounds return.<br>' +
+            'Continue sips via NGT to stimulate gut \u2014 bowel rest alone not superior to sips.</span>' +
+          '</div>' +
+
+          '<div style="padding:8px 10px;background:var(--sf2);border-radius:var(--rs);border-left:3px solid var(--hint);margin-bottom:6px;">' +
+            '<b style="color:var(--text);">5. Diet</b><br>' +
+            '<span style="color:var(--muted);">Maintain sips unless active vomiting. Do not NBM without reason \u2014 early enteral stimulation aids recovery.<br>' +
+            'Advance carefully when tolerated. Do not wait for flatus.</span>' +
+          '</div>' +
+
+          '<div style="margin-top:10px;padding:8px 10px;background:var(--red-l);border-radius:var(--rs);border-left:3px solid var(--red);">' +
+            '<b style="color:var(--red);">\u23f1 TPN threshold \u2014 ESPEN guideline</b><br>' +
+            '<span style="color:var(--muted);">Start TPN if patient <b>cannot meet caloric requirements by day 7 orally/enterally</b>.<br>' +
+            'Evidence: ESPEN (Weimann et al., Clin Nutr 2017) \u2014 PN recommended when oral/enteral intake inadequate for 7\u201310 days post-op.<br>' +
+            'Enteral feeding (jejunostomy/NGJ) preferred over PN if gut accessible.<br>' +
+            'If TPN required: refer dietitian + consultant review + central/PICC access + daily goals of care documentation.</span>' +
+          '</div>' +
+
         '</div>' +
+      '</details>' +
+
+      '<div class="fr" style="margin-top:4px;">' +
+        '<div class="fg"><label>POD of ileus diagnosis</label><select id="ileus-pod" onchange="checkIleusTPN()"><option value="">Select</option><option>POD 2</option><option>POD 3</option><option>POD 4</option><option>POD 5</option><option>POD 6</option><option>POD 7+</option></select></div>' +
+        '<div class="fg"><label>NGT in situ?</label><div class="og" id="ngt-grp" style="margin-top:4px;">' +
+          optBtn('Yes \u2014 aspirate 4-hourly','ngt-grp','sel-a') +
+          optBtn('No \u2014 not indicated','ngt-grp','sel-g') +
+        '</div></div>' +
       '</div>' +
-      '<div class="fg fr1" style="margin-top:8px;"><label>Response to current step</label><div class="og" id="ileus-response-grp" style="margin-top:4px;">' +
+      '<div class="fg fr1" style="margin-top:8px;"><label>Metoclopramide contraindication?</label><div class="og" id="metro-ci-grp" style="margin-top:4px;">' +
+        optBtn('No CI \u2014 give \u2713','metro-ci-grp','sel-g') +
+        optBtn('Suspected obstruction','metro-ci-grp','sel-r') +
+        optBtn('Parkinson\'s / extrapyramidal','metro-ci-grp','sel-r') +
+        optBtn('Prior reaction','metro-ci-grp','sel-r') +
+      '</div></div>' +
+      '<div id="ileus-tpn-flag" style="margin-top:8px;"></div>' +
+      '<div class="fg fr1" style="margin-top:8px;"><label>Response</label><div class="og" id="ileus-response-grp" style="margin-top:4px;">' +
         optBtn('Improving \u2713','ileus-response-grp','sel-g') +
         optBtn('No change','ileus-response-grp','sel-a') +
         optBtn('Worsening \u2014 escalate','ileus-response-grp','sel-r') +
       '</div></div>' +
-      '<div class="fg fr1" style="margin-top:6px;"><label>Notes</label><textarea id="ileus-notes" rows="2" placeholder="e.g. POD 3 ileus. Mechanical obstruction excluded (AXR normal, no colicky pain). Metoclopramide continued. NGT inserted 400mL aspirate. Mobilising TDS with physio."></textarea></div>' +
+      '<div class="fg fr1" style="margin-top:8px;"><label>Notes</label><textarea id="ileus-notes" rows="2" placeholder="e.g. POD 3 ileus. Obstruction excluded (CT normal). Metoclopramide started. Mobilising TDS with physio. K+ corrected. Sips maintained. No NGT \u2014 distension without vomiting."></textarea></div>' +
     '</div></div>' +
 
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-a">\u26a0\ufe0f</div><div><div class="ct">Problem log</div><div class="cs">Only log when something changes</div></div></div><div class="cv open">\u25be</div></div>' +
@@ -4701,67 +4778,34 @@ function leakGradeCard(grade, title, text, col) {
   '</div>';
 }
 
-function showIleusStep(step) {
-  var steps = {
-    '1': {
-      title: 'Step 1 \u2014 Metoclopramide (routine POD 0\u20133)',
-      col: 'blue',
-      body: '<b>Routine for all patients unless contraindicated.</b><br>' +
-            'IV/oral Metoclopramide 10mg TDS \u00d7 3 days post-op.<br>' +
-            '<b>Contraindications:</b> suspected mechanical obstruction, Parkinson\'s disease / extrapyramidal disorder, prior adverse reaction.<br>' +
-            'Document reason if withheld. Check contraindication toggle above.'
-    },
-    '2': {
-      title: 'Step 2 \u2014 Active mobilisation',
-      col: 'teal',
-      body: '<b>Mobilise early and often.</b><br>' +
-            'Target: out of bed within 2h of ward arrival (POD 0). Walk to corridor by POD 1. Walk independently by POD 2.<br>' +
-            'Involve physiotherapy. Sitting in chair all day is not sufficient \u2014 must walk.<br>' +
-            'Document distance and frequency. Mobilisation directly stimulates gut motility via the autonomic nervous system.'
-    },
-    '3': {
-      title: 'Step 3 \u2014 Bowel rest + NGT if vomiting',
-      col: 'amber',
-      body: '<b>Insert NGT if patient is vomiting or has marked abdominal distension.</b><br>' +
-            'NBM. Record aspirate volume 4-hourly.<br>' +
-            'Continue NGT until aspirate &lt;200mL/4h and bowel sounds return.<br>' +
-            'If no vomiting: continue sips only, do not force diet advancement.'
-    },
-    '4': {
-      title: 'Step 4 \u2014 IV fluids + electrolyte correction',
-      col: 'amber',
-      body: '<b>Electrolyte disturbance worsens ileus \u2014 correct aggressively.</b><br>' +
-            'Check: K\u207a (target >3.5), Mg\u00b2\u207a (target >0.8), PO\u2084, Na\u207a.<br>' +
-            'IV fluid replacement 1:1 with NGT output if NGT in situ.<br>' +
-            'Stop any medications that reduce gut motility: opioids (step down if possible), anticholinergics, calcium channel blockers.'
-    },
-    '5': {
-      title: 'Step 5 \u2014 Exclude mechanical obstruction',
-      col: 'orange',
-      body: '<b>Must exclude if: colicky abdominal pain + was tolerating diet + sudden vomiting onset.</b><br>' +
-            'Order CT abdomen/pelvis with contrast urgently (not AXR alone).<br>' +
-            'Also exclude anastomotic leak if CRP rising or clinical signs of sepsis \u2014 do not treat ileus while missing a leak.<br>' +
-            'Senior review required before proceeding to Step 6.'
-    },
-    '6': {
-      title: 'Step 6 \u2014 TPN + consultant review',
-      col: 'red',
-      body: '<b>Ileus >5 days with no prospect of oral intake within 48h \u2014 start TPN.</b><br>' +
-            'Refer to dietitian. Insert PICC or central line for TPN access.<br>' +
-            'Consultant must review: re-examine for occult leak, repeat CT, consider causes beyond ileus.<br>' +
-            'Document prognosis, goals of care, and daily plan clearly in notes.'
-    },
-  };
-  var el = document.getElementById('ileus-step-detail');
-  if (!el || !step || !steps[step]) { if (el) el.innerHTML = ''; return; }
-  var s = steps[step];
-  var cols = {blue:'var(--blue)',amber:'var(--amber)',teal:'var(--teal)',orange:'var(--orange)',red:'var(--red)'};
-  var bgs  = {blue:'var(--blue-l)',amber:'var(--amber-l)',teal:'var(--teal-l)',orange:'var(--orange-l)',red:'var(--red-l)'};
-  var bds  = {blue:'var(--blue-b)',amber:'var(--amber-b)',teal:'var(--teal-b)',orange:'var(--orange-b)',red:'var(--red-b)'};
-  el.innerHTML = '<div style="background:' + bgs[s.col] + ';border:1px solid ' + bds[s.col] + ';border-radius:var(--rs);padding:12px 13px;">' +
-    '<div style="font-size:12px;font-weight:800;color:' + cols[s.col] + ';margin-bottom:7px;">' + s.title + '</div>' +
-    '<div style="font-size:12px;color:#334155;line-height:1.7;">' + s.body + '</div>' +
-  '</div>';
+function showIleusStep(step) { /* deprecated */ }
+
+function checkIleusTPN() {
+  var podEl = document.getElementById('ileus-pod');
+  var f     = document.getElementById('ileus-tpn-flag');
+  if (!f || !podEl || !podEl.value) return;
+  var podNum = parseInt((podEl.value||'').replace(/[^0-9]/g,'')) || 0;
+  if (podNum >= 7) {
+    f.innerHTML = flag('r','\ud83d\udea8','TPN threshold reached \u2014 POD ' + podNum,
+      'ESPEN guideline (Weimann et al., Clin Nutr 2017): Start PN if patient cannot meet caloric requirements within 7\u201310 days orally or enterally post-op.\n\n' +
+      'Action now:\n' +
+      '\u2022 Refer dietitian urgently for PN assessment\n' +
+      '\u2022 Insert PICC or central line for TPN access\n' +
+      '\u2022 Consultant review \u2014 re-examine for occult leak, repeat CT\n' +
+      '\u2022 Enteral route preferred (NGJ/jejunostomy) over PN if gut accessible\n' +
+      '\u2022 Document daily goals of care and PN plan clearly in notes'
+    );
+  } else if (podNum >= 5) {
+    f.innerHTML = flag('a','\u26a0\ufe0f','Approaching TPN threshold \u2014 prepare',
+      'POD ' + podNum + ': If no oral/enteral intake by POD 7, TPN will be required (ESPEN).\n\n' +
+      '\u2022 Ensure dietitian is aware\n' +
+      '\u2022 Plan IV access (PICC/Hickman) proactively\n' +
+      '\u2022 Consider enteral route (NGJ/feeding jejunostomy) as first preference\n' +
+      '\u2022 Senior review today'
+    );
+  } else {
+    f.innerHTML = '';
+  }
 }
 
 // ── Ward round tab state ──
