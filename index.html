@@ -1847,20 +1847,40 @@ function autoDetectErasMilestones() {
   var cathEl = document.querySelector('#cath-grp .opt.sel-g');
   if (cathEl && cathEl.textContent.indexOf('Removed') > -1) autoMark('ms-cath', 1);
 
-  // ── ms-sitout: Sit out of bed — mob log has any entry with sit/bed/chair
-  if (mobLog.length) {
-    var sitEntry = mobLog.find(function(m) {
-      return m.level && (m.level.toLowerCase().indexOf('sit') > -1 || m.level.toLowerCase().indexOf('bed') > -1 || m.level.toLowerCase().indexOf('chair') > -1);
+  // Mobilisation hierarchy — higher level implies all lower levels achieved
+  // 1=sat up in bed, 2=sat out of bed, 3=stood at bedside, 4=walk in room, 5=walk to corridor, 6=walk independently
+  var mobHierarchy = [
+    { level: 1, keywords: ['sat up in bed'] },
+    { level: 2, keywords: ['sat out of bed'] },
+    { level: 3, keywords: ['stood at bedside'] },
+    { level: 4, keywords: ['walk in room'] },
+    { level: 5, keywords: ['walk to corridor'] },
+    { level: 6, keywords: ['walk independently'] },
+  ];
+
+  function getMobLevel(logEntry) {
+    if (!logEntry || !logEntry.level) return 0;
+    var l = logEntry.level.toLowerCase();
+    var best = 0;
+    mobHierarchy.forEach(function(h) {
+      if (h.keywords.some(function(k) { return l.indexOf(k) > -1; })) best = h.level;
     });
-    if (sitEntry) autoMark('ms-sitout', parseInt((sitEntry.pod||'').replace(/[^0-9]/g,'')) || 1);
+    return best;
   }
 
-  // ── ms-walk: Walk independently — mob log has walk entry
   if (mobLog.length) {
-    var walkEntry = mobLog.find(function(m) {
-      return m.level && m.level.toLowerCase().indexOf('walk') > -1;
-    });
-    if (walkEntry) autoMark('ms-walk', parseInt((walkEntry.pod||'').replace(/[^0-9]/g,'')) || 2);
+    // Find highest mob level achieved and the earliest entry at that level or above
+    var highestEntry = mobLog.reduce(function(best, m) {
+      return getMobLevel(m) > getMobLevel(best) ? m : best;
+    }, mobLog[0]);
+    var highestLevel = getMobLevel(highestEntry);
+    var highestPod = parseInt((highestEntry.pod||'').replace(/[^0-9]/g,'')) || 1;
+
+    // ms-sitout: achieved if level >= 2 (sat out of bed or higher)
+    if (highestLevel >= 2) autoMark('ms-sitout', highestPod);
+
+    // ms-walk: achieved if level >= 4 (walk in room or higher)
+    if (highestLevel >= 4) autoMark('ms-walk', highestPod);
   }
 
   // ── ms-abx: IV antibiotics stopped — abx status is None or Oral
