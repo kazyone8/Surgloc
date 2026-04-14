@@ -2346,6 +2346,30 @@ function buildPreop() {
 
       // CFS
       '<div class="slbl">1. Frailty — Clinical Frailty Scale (CFS)</div>' +
+      '<details style="margin-bottom:8px;margin-top:4px;">' +
+        '<summary style="font-size:11.5px;color:var(--blue);font-weight:600;cursor:pointer;padding:6px 10px;background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--rs);list-style:none;display:flex;align-items:center;gap:6px;">' +
+          '\ud83d\udcd6 CFS Guide — tap to expand' +
+        '</summary>' +
+        '<div style="margin-top:4px;border:1px solid var(--bd);border-radius:var(--rs);overflow:hidden;">' +
+          [
+            {v:'1', col:'#16a34a', label:'Very fit',            desc:'Robust, active, energetic and motivated. Exercises regularly. Among the fittest for their age.'},
+            {v:'2', col:'#16a34a', label:'Well',                desc:'No active disease symptoms but less fit than CFS 1. Exercises or is active occasionally.'},
+            {v:'3', col:'#16a34a', label:'Managing well',       desc:'Medical problems are well controlled. Not regularly active beyond routine walking.'},
+            {v:'4', col:'#d97706', label:'Vulnerable',          desc:'Not dependent but symptoms limit activities. Often slowed down or tired during the day.'},
+            {v:'5', col:'#ea580c', label:'Mildly frail',        desc:'Evident slowing. Dependent on others for high-order IADLs (finances, transport, housework).'},
+            {v:'6', col:'#dc2626', label:'Moderately frail',    desc:'Help needed with all outside activities and housekeeping. Difficulty with stairs. Some help with bathing needed.'},
+            {v:'7', col:'#dc2626', label:'Severely frail',      desc:'Completely dependent for personal care. Stable — not at high risk of dying within 6 months.'},
+            {v:'8', col:'#7c3aed', label:'Very severely frail', desc:'Completely dependent. Approaching end of life. Typically could not recover from minor illness.'},
+            {v:'9', col:'#475569', label:'Terminally ill',      desc:'Life expectancy <6 months. Not otherwise evidently frail.'},
+          ].map(function(r) {
+            return '<div style="display:grid;grid-template-columns:32px 140px 1fr;align-items:start;gap:8px;padding:7px 10px;border-bottom:1px solid var(--bd);font-size:11.5px;">' +
+              '<div style="font-weight:800;color:' + r.col + ';font-family:var(--mono);">CFS ' + r.v + '</div>' +
+              '<div style="font-weight:600;color:var(--text);">' + r.label + '</div>' +
+              '<div style="color:var(--muted);">' + r.desc + '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</details>' +
       '<div class="cg" id="cfs-grp" style="margin-top:4px;">' +
         [
           {v:'1',l:'1 \u2014 Very fit'},
