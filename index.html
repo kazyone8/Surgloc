@@ -2764,7 +2764,12 @@ function buildPostop() {
       '<div id="eras-tracker-grid"></div>' +
     '</div></div>' +
     '<div class="cb">' +
-      '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
+      flag('b','\u2139\ufe0f','When to check CRP \u2014 leak detection protocol',
+        'POD 1: Baseline (expect 100\u2013200 mg/L \u2014 normal post-op rise)\n' +
+        'POD 3: Key decision point \u2014 should be falling. If >150 and not falling \u2014 exclude leak\n' +
+        'POD 5: Should be <100. Rising or plateau on POD 5 \u2014 urgent CT/review\n' +
+        'Rule: CRP not falling by POD 3\u20134 = anastomotic leak until proven otherwise') +
+      '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px;">' +
         '<div class="fg"><label>POD</label><select id="lab-pod"><option>POD 0</option><option>POD 1</option><option selected>POD 2</option><option>POD 3</option><option>POD 4</option><option>POD 5</option><option>POD 6</option><option>POD 7</option></select></div>' +
         '<div class="fg"><label>CRP (mg/L)</label><input type="number" id="crp-val" placeholder="e.g. 187"></div>' +
         '<div class="fg"><label>Hb (g/dL)</label><input type="number" id="hb-val" placeholder="e.g. 9.8" step="0.1"></div>' +
@@ -2811,7 +2816,36 @@ function buildPostop() {
       '<div id="diet-flag" style="margin-top:6px;"></div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-o">\ud83d\udc9b</div><div><div class="ct">Stoma output</div><div class="cs">Daily output, consistency, loperamide</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-g">\ud83d\udca8</div><div><div class="ct">Bowel function</div><div class="cs">Flatus and bowel movement — key ERAS milestones</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="cb">' +
+      flag('b','\u2139\ufe0f','ERAS targets for bowel function',
+        'First flatus: expected POD 1\u20132\n' +
+        'First bowel movement: expected POD 2\u20133\n' +
+        'Absence of flatus by POD 3 \u2014 consider ileus protocol\n' +
+        'No bowel movement by POD 4 \u2014 review diet, mobilisation, medications') +
+      '<div class="fr" style="margin-top:10px;">' +
+        '<div class="fg"><label>First flatus</label><div class="og" id="flatus-grp" style="margin-top:4px;">' +
+          optBtn('POD 0','flatus-grp','sel') +
+          optBtn('POD 1','flatus-grp','sel-g') +
+          optBtn('POD 2','flatus-grp','sel-g') +
+          optBtn('POD 3','flatus-grp','sel-a') +
+          optBtn('POD 4+','flatus-grp','sel-r') +
+          optBtn('None yet','flatus-grp','sel') +
+        '</div></div>' +
+      '</div>' +
+      '<div class="fr" style="margin-top:8px;">' +
+        '<div class="fg"><label>First bowel movement</label><div class="og" id="bowel-grp" style="margin-top:4px;">' +
+          optBtn('POD 1','bowel-grp','sel-g') +
+          optBtn('POD 2','bowel-grp','sel-g') +
+          optBtn('POD 3','bowel-grp','sel-g') +
+          optBtn('POD 4','bowel-grp','sel-a') +
+          optBtn('POD 5+','bowel-grp','sel-r') +
+          optBtn('None yet','bowel-grp','sel') +
+        '</div></div>' +
+      '</div>' +
+      '<div id="bowel-flag" style="margin-top:8px;"></div>' +
+      '<div class="fg fr1" style="margin-top:8px;"><label>Notes</label><input type="text" id="bowel-notes" placeholder="e.g. Flatus POD 1. First BM POD 3 — soft, no straining."></div>' +
+    '</div></div>' +
     '<div class="cb">' +
       flag('b','\u2139\ufe0f','Target stoma output: 400\u20131200 mL/day','Output &gt;1500 mL/day = high output stoma. Risk of dehydration and electrolyte imbalance. Initiate loperamide and restrict hypotonic fluids.') +
       '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px;">' +
@@ -4629,6 +4663,10 @@ function selGrpEl(el, grpId, cls) {
   var liveRefreshGroups = ['cath-grp','clex-grp','abx-status-grp'];
   if (liveRefreshGroups.indexOf(grpId) > -1) {
     refreshWardRound();
+  }
+  // Bowel function flags
+  if (grpId === 'flatus-grp' || grpId === 'bowel-grp') {
+    checkBowelFunction();
   }
 }
 
