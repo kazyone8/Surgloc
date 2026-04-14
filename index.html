@@ -4311,8 +4311,9 @@ function showWardRound(pod) {
     }
   }
 
-  // ── MOBILISATION (POD 1–4) ─────────────────────────────
-  if (podNum <= 4) {
+  // ── MOBILISATION (POD 1–4, stop once walk independently achieved) ──
+  var walkAchieved = window.erasAchieved && window.erasAchieved['ms-walk'];
+  if (podNum <= 4 && !walkAchieved) {
     var mobTarget = { 1:'Sit out of bed \u22652h + short walk', 2:'Walk corridor twice', 3:'Walk independently', 4:'Walk independently \u2014 escalate if not achieved' };
     if (mobDone) {
       items.push({ icon: '\ud83d\udeb6', title: 'Mobilisation', urgency: 'green',
@@ -4331,6 +4332,9 @@ function showWardRound(pod) {
         }]
       });
     }
+  } else if (walkAchieved) {
+    items.push({ icon: '\ud83d\udeb6', title: 'Mobilisation', urgency: 'green',
+      steps: [{ action: 'green', msg: '\u2705 Walking independently \u2014 mobilisation target achieved. No further daily logging needed.' }] });
   }
 
   // ── RENDER ─────────────────────────────────────────────
