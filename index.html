@@ -4048,24 +4048,61 @@ function showWardRound(pod) {
 
   // ── DIET ───────────────────────────────────────────────
   var dietLabels = ['NBM','Sips','Free fluids','Light diet','Normal diet','Discharge diet'];
-  var expected = Math.min(podNum, 5);
+  // ERAS expected minimum stage per POD:
+  // POD 0 → sips (1), POD 1 → free fluids/light (2), POD 2 → light (3), POD 3+ → normal (4)
+  var erasTarget = podNum === 0 ? 1 : podNum === 1 ? 2 : podNum === 2 ? 3 : 4;
   var currentDietLabel = dietStage >= 0 ? dietLabels[dietStage] : 'NBM';
   var dietUrgency = 'green';
   var dietSteps = [];
 
-  if (dietStage >= expected) {
-    dietSteps.push({ action: 'green', msg: '\u2705 Diet: ' + currentDietLabel + ' \u2014 on track for POD ' + podNum + '.' });
+  // Check if there was a stepback today
+  var todayStepback = dietLog.length > 1 && (function() {
+    var todayEntries = dietLog.filter(function(e) { return e.pod === 'POD ' + podNum; });
+    for (var i = 1; i < todayEntries.length; i++) {
+      if (todayEntries[i].stage < todayEntries[i-1].stage) return true;
+    }
+    return false;
+  })();
+
+  if (todayStepback) {
+    allClear = false;
+    dietUrgency = 'red';
+    dietSteps.push({ action: 'red',
+      msg: '\ud83d\udea8 Diet stepped back today \u2014 reassess for ileus',
+      detail:
+        'Current: ' + currentDietLabel + '\n' +
+        '\u2022 Abdominal exam \u2014 distension? bowel sounds?\n' +
+        '\u2022 Review opioids \u2014 step down analgesia if possible\n' +
+        '\u2022 NG aspirate if tube in situ (if >200mL \u2014 keep NBM)\n' +
+        '\u2022 If no improvement by next round \u2014 follow ileus protocol'
+    });
+  } else if (dietStage >= 4) {
+    // Normal diet or discharge diet — no further action
+    dietSteps.push({ action: 'green', msg: '\u2705 Diet: ' + currentDietLabel + ' \u2014 ERAS target met. No further advancement needed.' });
+  } else if (dietStage >= erasTarget) {
+    // Meeting or exceeding ERAS target but not yet on normal diet — prompt advance
+    var nextLabel = dietLabels[Math.min(dietStage + 1, 5)];
+    dietUrgency = 'blue';
+    dietSteps.push({ action: 'blue',
+      msg: '\u27a1\ufe0f Diet: ' + currentDietLabel + ' \u2014 on track. Consider advancing to ' + nextLabel + ' if tolerated.',
+      detail:
+        'ERAS target for POD ' + podNum + ': ' + dietLabels[erasTarget] + '. Currently meeting target.\n' +
+        'Advance to ' + nextLabel + ' if:\n' +
+        '\u2022 No active vomiting\n\u2022 Abdomen soft\n\u2022 CRP trajectory acceptable\n\u2022 Patient willing'
+    });
   } else {
+    // Behind ERAS target
     allClear = false;
     dietUrgency = 'amber';
     dietSteps.push({ action: 'amber',
-      msg: '\u26a0\ufe0f Diet: ' + currentDietLabel + ' \u2014 expected ' + dietLabels[expected] + ' by POD ' + podNum + '.',
+      msg: '\u26a0\ufe0f Diet: ' + currentDietLabel + ' \u2014 behind ERAS target (expected ' + dietLabels[erasTarget] + ' by POD ' + podNum + ').',
       detail:
         'Ask the patient:\n' +
         '1. Nausea or vomiting? \u2192 If yes \u2192 check for ileus (bowel sounds? distension?)\n' +
-        '2. Tolerating current diet? \u2192 If yes \u2192 advance now and mark in diet panel below\n' +
+        '2. Tolerating current diet? \u2192 If yes \u2192 advance now and log in diet panel\n' +
         '3. NGT in? \u2192 Check 4h aspirate \u2192 If <200mL \u2192 remove and advance\n' +
-        'If not advancing: document clinical reason in notes.'
+        'If not advancing: document clinical reason in notes.\n' +
+        (podNum >= 4 ? '\u26a0\ufe0f POD ' + podNum + ' without normal diet \u2014 senior review recommended.' : '')
     });
   }
   items.push({ icon: '\ud83c\udf7d\ufe0f', title: 'Diet progression', urgency: dietUrgency, steps: dietSteps });
