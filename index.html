@@ -2417,6 +2417,35 @@ function buildPreop() {
       // PREHAB
       '<div class="slbl">3. Prehabilitation</div>' +
       '<div id="prehab-ecog-flag" style="margin-bottom:6px;"></div>' +
+      '<details style="margin-bottom:8px;">' +
+        '<summary style="font-size:11.5px;color:var(--blue);font-weight:600;cursor:pointer;padding:6px 10px;background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--rs);list-style:none;display:flex;align-items:center;gap:6px;">' +
+          '\ud83d\udcd6 Prehab indications — tap to expand' +
+        '</summary>' +
+        '<div style="margin-top:4px;padding:10px 12px;border:1px solid var(--bd);border-radius:var(--rs);font-size:11.5px;line-height:1.8;">' +
+          '<div style="font-weight:700;color:var(--text);margin-bottom:6px;">\ud83c\udfaf Prehabilitation is indicated when:</div>' +
+          '<div style="color:var(--muted);">' +
+            '\u2022 <b>ECOG \u22652</b> or exercise capacity <b>&lt;4 METs</b> — poor functional status<br>' +
+            '\u2022 <b>CFS \u22654</b> — vulnerable or frail patients<br>' +
+            '\u2022 <b>Elective major resection</b> with \u22654 weeks to surgery<br>' +
+            '\u2022 <b>Neoadjuvant therapy planned</b> — use the treatment window for prehab<br>' +
+            '\u2022 <b>BMI &gt;35 or &lt;18.5</b> — obesity or severe malnutrition<br>' +
+            '\u2022 <b>Active smoker</b> — smoking cessation + pulmonary prehab<br>' +
+            '\u2022 <b>MUST \u22652</b> — malnourished patients benefit from combined nutrition + exercise<br>' +
+          '</div>' +
+          '<div style="font-weight:700;color:var(--text);margin-top:8px;margin-bottom:4px;">\ud83c\udfc3 What prehab includes:</div>' +
+          '<div style="color:var(--muted);">' +
+            '\u2022 Aerobic exercise — walking programme, cycling, swimming (target 150 min/week)<br>' +
+            '\u2022 Inspiratory muscle training — reduces post-op pulmonary complications<br>' +
+            '\u2022 Resistance training — preserve muscle mass especially in elderly<br>' +
+            '\u2022 Nutrition optimisation — high protein diet, oral supplements if MUST \u22652<br>' +
+            '\u2022 Psychological support — anxiety management, expectation setting<br>' +
+            '\u2022 Smoking cessation — minimum 4 weeks before surgery<br>' +
+          '</div>' +
+          '<div style="margin-top:8px;padding:6px 10px;background:var(--green-l);border-radius:var(--rs);color:var(--green);font-size:11px;font-weight:600;">' +
+            '\u2705 Evidence: 4 weeks of structured prehab reduces post-op complications and LOS in colorectal surgery (ACPGBI guidelines)' +
+          '</div>' +
+        '</div>' +
+      '</details>' +
       '<div class="fr" style="margin-top:6px;">' +
         '<div class="fg"><label>Physiotherapy referral</label><div class="og" id="prehab-grp" style="margin-top:4px;">' + optBtn('Done \u2713','prehab-grp','sel-g') + optBtn('Referred','prehab-grp','sel-a') + optBtn('Not indicated','prehab-grp','sel') + '</div></div>' +
         '<div class="fg"><label>Date started</label><input type="date" id="prehab-date"></div>' +
