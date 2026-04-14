@@ -3412,10 +3412,16 @@ function startPostop() {
 }
 
 function initPostop() {
-  labResults = []; painLog = []; problems = []; dietSetbacks = []; dietLog = []; stomaLog = []; mobLog = []; woundLog = [];
-  dietStage = -1;
-  dietStage = -1;
-  dcDone = new Array(14).fill(false);
+  // NOTE: arrays are reset in startPostop() for new cases only
+  // Do NOT reset arrays here — restoreMod has already restored them
+  dcDone = dcDone || new Array(14).fill(false);
+  // Re-render logs if data already exists (after save/reload)
+  if (dietLog.length)   { renderDietTimeline(); dietSmartPrompt(); }
+  if (mobLog.length)    renderMobLog();
+  if (stomaLog.length)  { renderStomaLog(); analyseStomaOutput(); }
+  if (painLog.length)   renderPainLog();
+  if (labResults.length){ renderLabResults(); checkCRPTrend(); }
+  setTimeout(function() { renderErasTracker(); refreshWardRound(); }, 150);
 }
 
 // ── Post-op functions ──
