@@ -2654,7 +2654,7 @@ function buildSurgery() {
     '<div class="cb">' +
       '<div class="fr" style="grid-template-columns:1fr 1fr;">' +
         '<div class="fg"><label>Procedure performed</label><select id="sg-proc-done"><option value="">Select</option><option>Robotic LAR</option><option>Robotic ULAR</option><option>Pelvic node dissection</option><option>Robotic APR</option><option>TaTME</option><option>Robotic right hemicolectomy</option><option>Extended right hemicolectomy</option><option>Sigmoid colectomy</option><option>Hartmann\'s procedure</option><option>Multivisceral resection</option></select></div>' +
-        '<div class="fg"><label>Confirmed approach</label><select id="sg-approach-conf"><option value="">Select</option><option>Robotic \u2014 medial to lateral</option><option>Robotic \u2014 lateral to medial</option><option>Laparoscopic</option><option>Open</option><option>Converted to laparoscopic</option><option>Converted to open</option></select></div>' +
+        '<div class="fg"><label>Confirmed approach</label><select id="sg-approach-conf"><option value="">Select</option><option>Robotic</option><option>Laparoscopic</option><option>Open</option><option>Converted to laparoscopic</option><option>Converted to open</option></select></div>' +
       '</div>' +
       '<div class="slbl">Add event</div>' +
       '<div style="display:flex;gap:7px;align-items:flex-end;margin-bottom:8px;">' +
@@ -2666,7 +2666,8 @@ function buildSurgery() {
       '<div id="event-list"><div style="font-size:12px;color:var(--hint);text-align:center;padding:10px;">No events logged yet</div></div>' +
       '<div class="div"></div>' +
       '<div class="fr">' +
-        '<div class="fg"><label>Anastomosis type</label><select id="sg-anastomosis"><option value="">N/A</option><option>Circular stapler (EEA)</option><option>Linear stapler</option><option>Hand-sewn</option><option>No anastomosis \u2014 end stoma</option></select></div>' +
+        '<div class="fg"><label>Anastomosis type</label><select id="sg-anastomosis"><option value="">Select</option><option>Intracorporeal</option><option>Extracorporeal</option><option>No anastomosis \u2014 end stoma</option></select></div>' +
+        '<div class="fg"><label>NOSE \u2014 Natural orifice specimen extraction</label><div class="og" id="nose-grp" style="margin-top:4px;">' + optBtn('Yes \u2713','nose-grp','sel-g') + optBtn('No','nose-grp','sel') + '</div></div>' +
         '<div class="fg"><label>Air leak test</label><div class="og" id="leak-grp" style="margin-top:4px;">' + optBtn('Negative \u2713','leak-grp','sel-g') + optBtn('Positive \u2717','leak-grp','sel-r') + optBtn('N/A','leak-grp','sel') + '</div></div>' +
       '</div>' +
     '</div></div>' +
