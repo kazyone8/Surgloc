@@ -3600,6 +3600,23 @@ function addDietLog() {
   // Update global dietStage to latest entry
   dietStage = stage;
 
+  // Auto-resolve ERAS milestones from diet log
+  if (!window.erasAchieved) window.erasAchieved = {};
+  var podNum = parseInt(entry.pod) || 0;
+  if (stage >= 1 && !window.erasAchieved['ms-fluids']) {
+    window.erasAchieved['ms-fluids'] = true;
+    window.erasAchieved['ms-fluids_pod'] = podNum;
+  }
+  if (stage >= 3 && !window.erasAchieved['ms-diet']) {
+    window.erasAchieved['ms-diet'] = true;
+    window.erasAchieved['ms-diet_pod'] = podNum;
+  }
+  if (stage >= 4 && !window.erasAchieved['ms-normaldiet']) {
+    window.erasAchieved['ms-normaldiet'] = true;
+    window.erasAchieved['ms-normaldiet_pod'] = podNum;
+  }
+  renderErasTracker();
+
   renderDietTimeline();
   dietSmartPrompt();
   refreshWardRound();
