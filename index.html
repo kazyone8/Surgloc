@@ -1071,8 +1071,9 @@ function restoreMod(mod) {
     if (data['_stoma_log'])    { stomaLog = data['_stoma_log']; renderStomaLog(); analyseStomaOutput(); }
     if (data['_pain_log'])     { painLog = data['_pain_log']; renderPainLog(); }
     if (data['_wound_log'])    { woundLog = data['_wound_log']; }
-    // Restore erasAchieved
-    if (!window.erasAchieved) window.erasAchieved = {};
+    // Restore ERAS milestone achieved state
+    if (data['_eras_achieved']) { window.erasAchieved = data['_eras_achieved']; }
+    else if (!window.erasAchieved) { window.erasAchieved = {}; }
     setTimeout(function() { renderErasTracker(); refreshWardRound(); }, 100);
   }
 }
@@ -1783,9 +1784,14 @@ function checkAbxStewardship() {
   var f         = document.getElementById('abx-flag');
   var srcBlock  = document.getElementById('abx-source-block');
   if (!f) return;
-  if (none) {
+  if (none || oral) {
     f.innerHTML = flag('g','\u2705','No IV antibiotics \u2014 good stewardship','Patient on no antibiotics. Correct ERAS practice.');
     if (srcBlock) srcBlock.style.display = 'none';
+    // Auto-resolve ERAS milestone
+    if (!window.erasAchieved) window.erasAchieved = {};
+    window.erasAchieved['ms-abx'] = true;
+    window.erasAchieved['ms-abx_pod'] = podNum;
+    renderErasTracker();
   } else if (oral) {
     f.innerHTML = flag('b','\ud83d\udc8a','Switched to oral \u2014 good practice','Confirm a clear stop date is documented on the drug chart.');
     if (srcBlock) srcBlock.style.display = 'none';
@@ -1927,6 +1933,13 @@ function toggleErasMilestone(id, currentPOD) {
     window.erasAchieved[id + '_pod'] = currentPOD;
   }
   renderErasTracker();
+  // Persist immediately to case data
+  if (curCase && curMod === 'postop') {
+    var data = MD('postop');
+    data['_eras_achieved'] = window.erasAchieved;
+    saveState();
+    showAutosaveStatus('saved');
+  }
 }
 
 // ═══════════════════════════════════════
@@ -4141,20 +4154,43 @@ function showWardRound(pod) {
       items.push({ icon: '\ud83e\udda0', title: 'IV antibiotics', urgency: 'green',
         steps: [{ action: 'green', msg: '\u2705 ' + (abxOral ? 'Switched to oral antibiotics \u2014 confirm stop date documented.' : 'No IV antibiotics running \u2014 good stewardship.') }] });
     } else if (abxRunning) {
-      allClear = false;
-      items.push({ icon: '\ud83e\udda0', title: 'IV antibiotic stewardship', urgency: 'red',
-        steps: [{ action: 'red',
-          msg: '\ud83d\udea8 IV antibiotics running on POD ' + podNum + ' \u2014 document indication now.',
-          detail:
-            'Confirmed source required:\n' +
-            '\u2022 Wound infection: cellulitis / discharge \u2192 document + swab\n' +
-            '\u2022 Chest infection: productive cough / CXR change \u2192 document\n' +
-            '\u2022 UTI: symptoms + positive culture \u2192 document\n' +
-            '\u2022 Anastomotic leak: CRP rising + peritonism \u2192 see leak protocol\n' +
-            'No confirmed source \u2192 Stop now \u2192 Document: \u201cNo active infection. IV antibiotics discontinued.\u201d\n' +
-            'Post-op fever alone is NOT an indication.'
-        }]
-      });
+      // Check if a source is documented in the abx source panel
+      var abxSourceEl = document.querySelector('#abx-source-grp .sel, #abx-source-grp .sel-r, #abx-source-grp .sel-g, #abx-source-grp .sel-a');
+      var abxSourceTxt = abxSourceEl ? abxSourceEl.textContent.trim() : '';
+      var abxNotesEl = document.getElementById('abx-notes');
+      var abxNotes = abxNotesEl ? abxNotesEl.value.trim() : '';
+      var hasSource = abxSourceTxt && abxSourceTxt.indexOf('No source') === -1;
+
+      if (hasSource) {
+        // Source documented — amber, monitor
+        items.push({ icon: '\ud83e\udda0', title: 'IV antibiotic stewardship', urgency: 'amber',
+          steps: [{ action: 'amber',
+            msg: '\u26a0\ufe0f IV antibiotics continuing \u2014 source: ' + abxSourceTxt,
+            detail:
+              'Documented indication: ' + abxSourceTxt + (abxNotes ? ' \u2014 ' + abxNotes : '') + '\n\n' +
+              'Daily review required:\n' +
+              '\u2022 Reassess clinical need every 24h\n' +
+              '\u2022 Switch to oral as soon as patient tolerating diet and afebrile >24h\n' +
+              '\u2022 Set a clear stop date on the drug chart\n' +
+              '\u2022 Post-op fever alone is NOT a sufficient ongoing indication'
+          }]
+        });
+      } else {
+        // No source — red, stop now
+        allClear = false;
+        items.push({ icon: '\ud83e\udda0', title: 'IV antibiotic stewardship', urgency: 'red',
+          steps: [{ action: 'red',
+            msg: '\ud83d\udea8 IV antibiotics running on POD ' + podNum + ' \u2014 document indication now.',
+            detail:
+              'If continuing for clinical reason, document source in IV antibiotics panel:\n' +
+              '\u2022 Fever with confirmed source (wound / chest / UTI / leak)\n' +
+              '\u2022 Senior approval documented\n\n' +
+              'If no confirmed source:\n' +
+              '\u2192 Stop now \u2192 Document: \u201cNo active infection. IV antibiotics discontinued.\u201d\n\n' +
+              'Post-op fever alone is NOT an indication for IV antibiotics.'
+          }]
+        });
+      }
     } else {
       // Not yet documented
       allClear = false;
@@ -5100,6 +5136,8 @@ function doAutosave() {
       data['_pain_log'] = painLog;
     }
     if (woundLog.length) data['_wound_log'] = woundLog;
+    // Save ERAS milestone achieved state
+    if (window.erasAchieved) data['_eras_achieved'] = window.erasAchieved;
     var cathSel = document.querySelector('#cath-grp .opt.sel-g, #cath-grp .opt.sel-r, #cath-grp .opt.sel');
     if (cathSel) data['_cath_sel'] = cathSel.textContent.trim();
     var clexSel = document.querySelector('#clex-grp .opt.sel-g, #clex-grp .opt.sel-r, #clex-grp .opt.sel-a');
