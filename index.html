@@ -2677,7 +2677,12 @@ function buildSurgery() {
       '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
         '<div class="fg"><label>Total op time</label><input type="text" id="sg-op-time" readonly placeholder="Auto from times"></div>' +
         '<div class="fg"><label>Console time (min)</label><input type="number" id="sg-console" placeholder="e.g. 145"></div>' +
-        '<div class="fg"><label>Blood loss (mL)</label><input type="number" id="sg-blood" placeholder="e.g. 80" oninput="onBloodLoss(this.value)"></div>' +
+        '<div class="fg"><label>Blood loss (mL)</label>' +
+          '<div style="display:flex;gap:8px;align-items:center;margin-top:4px;">' +
+            '<input type="number" id="sg-blood" placeholder="e.g. 80" oninput="onBloodLoss(this.value)" style="flex:1;">' +
+            optBtn('Minimal','sg-blood-minimal-grp','sel-g',';document.getElementById(\'sg-blood\').value=\'<10\';onBloodLoss(\'<10\')') +
+          '</div>' +
+        '</div>' +
       '</div>' +
       '<div class="fr">' +
         '<div class="fg"><label>Conversion</label><select id="sg-conv"><option>No conversion</option><option>Converted to laparoscopic</option><option>Converted to open</option></select></div>' +
