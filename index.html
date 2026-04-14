@@ -1044,6 +1044,7 @@ function saveCurrentMod() {
   saveState();
   renderJourney();
   loadMod(curMod);
+  if (curMod === 'postop') setTimeout(function() { autoDetectErasMilestones(); renderErasTracker(); }, 200);
   toast('\u2705 Saved: ' + curMod);
 }
 
@@ -1812,7 +1813,80 @@ function checkAbxNoSource() {
   if (f) f.innerHTML = flag('r','\ud83d\udea8','No source identified \u2014 stop IV antibiotics now','No clinical or biochemical evidence of infection. Continuing IV antibiotics without documented source is not acceptable. Stop now and document: \u201cNo active infection identified. IV antibiotics discontinued.\u201d');
 }
 
+function autoDetectErasMilestones() {
+  if (!window.erasAchieved) window.erasAchieved = {};
+  var ea = window.erasAchieved;
+
+  // Helper: mark milestone only if not already manually set
+  function autoMark(id, pod) {
+    if (!ea[id]) {
+      ea[id] = true;
+      ea[id + '_pod'] = pod;
+    }
+  }
+
+  // ── ms-fluids: Oral fluids — any diet log entry stage >= 1
+  if (dietLog.length) {
+    var firstFluid = dietLog.find(function(e) { return e.stage >= 1; });
+    if (firstFluid) autoMark('ms-fluids', parseInt((firstFluid.pod||'').replace(/[^0-9]/g,'')) || 0);
+  }
+
+  // ── ms-diet: Light diet — diet log stage >= 3
+  if (dietLog.length) {
+    var firstLight = dietLog.find(function(e) { return e.stage >= 3; });
+    if (firstLight) autoMark('ms-diet', parseInt((firstLight.pod||'').replace(/[^0-9]/g,'')) || 2);
+  }
+
+  // ── ms-normaldiet: Normal diet — diet log stage >= 4
+  if (dietLog.length) {
+    var firstNormal = dietLog.find(function(e) { return e.stage >= 4; });
+    if (firstNormal) autoMark('ms-normaldiet', parseInt((firstNormal.pod||'').replace(/[^0-9]/g,'')) || 3);
+  }
+
+  // ── ms-cath: Catheter removed — cath-grp has sel-g (Removed)
+  var cathEl = document.querySelector('#cath-grp .opt.sel-g');
+  if (cathEl && cathEl.textContent.indexOf('Removed') > -1) autoMark('ms-cath', 1);
+
+  // ── ms-sitout: Sit out of bed — mob log has any entry with sit/bed/chair
+  if (mobLog.length) {
+    var sitEntry = mobLog.find(function(m) {
+      return m.level && (m.level.toLowerCase().indexOf('sit') > -1 || m.level.toLowerCase().indexOf('bed') > -1 || m.level.toLowerCase().indexOf('chair') > -1);
+    });
+    if (sitEntry) autoMark('ms-sitout', parseInt((sitEntry.pod||'').replace(/[^0-9]/g,'')) || 1);
+  }
+
+  // ── ms-walk: Walk independently — mob log has walk entry
+  if (mobLog.length) {
+    var walkEntry = mobLog.find(function(m) {
+      return m.level && m.level.toLowerCase().indexOf('walk') > -1;
+    });
+    if (walkEntry) autoMark('ms-walk', parseInt((walkEntry.pod||'').replace(/[^0-9]/g,'')) || 2);
+  }
+
+  // ── ms-abx: IV antibiotics stopped — abx status is None or Oral
+  var abxNoneEl = document.querySelector('#abx-status-grp .sel-g');
+  var abxOralEl = document.querySelector('#abx-status-grp .sel-t');
+  if (abxNoneEl || abxOralEl) autoMark('ms-abx', 2);
+
+  // ── ms-pain: Pain on oral only — no opioid in pain log, or opioid-free entry
+  if (painLog.length) {
+    var oralOnlyEntry = painLog.find(function(p) { return !p.opioid && p.nrs <= 4; });
+    if (oralOnlyEntry) autoMark('ms-pain', parseInt((oralOnlyEntry.pod||'').replace(/[^0-9]/g,'')) || 3);
+  }
+
+  // ── ms-drain: Drain removed — drain status field
+  var drainRemovedEl = document.querySelector('#drain-removed-grp .sel-g, #po-drain-grp .sel-g');
+  if (drainRemovedEl) autoMark('ms-drain', 3);
+
+  // ── ms-dc: Discharge ready — discharge checklist completed or dc date set
+  var dcDateEl = document.getElementById('dc-expected');
+  var dcDatePastEl = document.getElementById('dc-actual');
+  if ((dcDateEl && dcDateEl.value) || (dcDatePastEl && dcDatePastEl.value)) autoMark('ms-dc', 4);
+}
+
 function renderErasTracker() {
+  // Auto-detect from existing data before rendering
+  autoDetectErasMilestones();
   var surgEl  = document.getElementById('eras-surg-date');
   var todayEl = document.getElementById('eras-today-date');
   var grid    = document.getElementById('eras-tracker-grid');
