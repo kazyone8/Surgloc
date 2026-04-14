@@ -2006,6 +2006,68 @@ function enforceDeleteAuth(caseId) {
   return true;
 }
 
+function autoPrehabIndication() {
+  var pf = document.getElementById('prehab-ecog-flag');
+  if (!pf) return;
+
+  // Pull all upstream data
+  var ecog    = document.getElementById('p-ecog')    ? document.getElementById('p-ecog').value    : '';
+  var mets    = document.getElementById('p-mets')    ? document.getElementById('p-mets').value    : '';
+  var smoke   = document.getElementById('p-smoke')   ? document.getElementById('p-smoke').value   : '';
+  var bmi     = document.getElementById('p-bmi')     ? parseFloat(document.getElementById('p-bmi').value) : NaN;
+  var mustBmi = document.getElementById('must-bmi')  ? parseInt(document.getElementById('must-bmi').value)  : NaN;
+  var mustWl  = document.getElementById('must-wl')   ? parseInt(document.getElementById('must-wl').value)   : NaN;
+  var mustAcu = document.getElementById('must-acute') ? parseInt(document.getElementById('must-acute').value) : NaN;
+  var mustTotal = (!isNaN(mustBmi) && !isNaN(mustWl) && !isNaN(mustAcu)) ? mustBmi + mustWl + mustAcu : NaN;
+
+  // CFS — read selected chip
+  var cfsEl = document.querySelector('#cfs-grp .chip.on');
+  var cfs   = cfsEl ? parseInt(cfsEl.textContent) : NaN;
+
+  // Weeks to surgery
+  var surgEl = document.getElementById('optim-surg-date');
+  var weeksToSurg = NaN;
+  if (surgEl && surgEl.value) {
+    var days = Math.round((new Date(surgEl.value) - new Date()) / (1000*60*60*24));
+    weeksToSurg = days / 7;
+  }
+
+  // Evaluate indications
+  var hardIndications = [];
+  var softIndications = [];
+
+  if (parseInt(ecog) >= 2)              hardIndications.push('ECOG ' + ecog + ' (\u22652)');
+  if (mets === 'poor')                  hardIndications.push('<1 MET — poor exercise capacity');
+  if (!isNaN(cfs) && cfs >= 5)         hardIndications.push('CFS ' + cfs + ' — frail');
+  if (!isNaN(mustTotal) && mustTotal >= 2) hardIndications.push('MUST ' + mustTotal + ' — high malnutrition risk');
+  if (!isNaN(bmi) && bmi > 35)         hardIndications.push('BMI ' + bmi.toFixed(1) + ' — obese');
+  if (!isNaN(bmi) && bmi < 18.5)       hardIndications.push('BMI ' + bmi.toFixed(1) + ' — underweight');
+  if (smoke === 'Active smoker')        hardIndications.push('Active smoker — smoking cessation + pulmonary prehab');
+
+  if (ecog === '1')                     softIndications.push('ECOG 1 — restricted activity');
+  if (mets === 'moderate')             softIndications.push('Moderate exercise capacity (1–4 METs)');
+  if (!isNaN(cfs) && cfs === 4)        softIndications.push('CFS 4 — vulnerable');
+  if (!isNaN(mustTotal) && mustTotal === 1) softIndications.push('MUST 1 — medium nutritional risk');
+  if (!isNaN(weeksToSurg) && weeksToSurg >= 4) softIndications.push('\u2705 ' + weeksToSurg.toFixed(1) + ' weeks to surgery — good prehab window');
+
+  if (hardIndications.length > 0) {
+    pf.innerHTML = flag('r','\ud83d\udea8','Prehabilitation indicated \u2014 refer to physiotherapy now',
+      'Indications identified:\n' + hardIndications.map(function(i) { return '\u2022 ' + i; }).join('\n') +
+      (softIndications.length ? '\n\nAdditional factors:\n' + softIndications.map(function(i) { return '\u2022 ' + i; }).join('\n') : '') +
+      '\n\nTarget: structured programme for minimum 4 weeks before surgery.'
+    );
+  } else if (softIndications.filter(function(s){ return s.indexOf('\u2705') === -1; }).length > 0) {
+    pf.innerHTML = flag('a','\u26a0\ufe0f','Consider prehabilitation',
+      'Borderline indicators:\n' + softIndications.map(function(i) { return '\u2022 ' + i; }).join('\n') +
+      '\n\nPrehab may improve post-op recovery. Discuss with patient.'
+    );
+  } else if (hardIndications.length === 0 && softIndications.length === 0) {
+    pf.innerHTML = flag('g','\u2705','No prehab indications identified','Patient appears fit for surgery. No formal prehabilitation required. Encourage general activity maintenance before surgery date.');
+  } else {
+    pf.innerHTML = '';
+  }
+}
+
 function calcWeeksToSurg() {
   var input = document.getElementById('optim-surg-date');
   var display = document.getElementById('weeks-to-surg-display');
@@ -2048,6 +2110,7 @@ function onCFS(el, val) {
     f.innerHTML = flag('r','\ud83d\udea8','CFS ' + val + ' \u2014 Severely frail \u2014 senior review required','High surgical risk. Mandatory geriatric and anaesthetic review. MDT discussion recommended. Document shared decision-making clearly with patient and family.');
     if (rev) rev.style.display = 'block';
   }
+  autoPrehabIndication();
 }
 
 function calcMUST() {
@@ -2068,6 +2131,7 @@ function calcMUST() {
     if (res) res.innerHTML = flag('r','\ud83d\udea8','MUST score ' + total + ' \u2014 High risk \u2014 dietitian referral required','Immediate dietitian review. Commence oral nutritional supplements. Consider pre-op nutritional optimisation \u2014 may need to delay surgery to optimise.');
     if (block) block.style.display = 'block';
   }
+  autoPrehabIndication();
 }
 
 function onFitnessChange() {
@@ -2317,18 +2381,8 @@ function buildPreop() {
   ];
   erasDone = new Array(7).fill(false);
 
-  // Check ECOG from presentation for prehab flag
-  setTimeout(function() {
-    var ecog = document.getElementById('p-ecog') ? document.getElementById('p-ecog').value : '';
-    var mets = document.getElementById('p-mets') ? document.getElementById('p-mets').value : '';
-    var pf = document.getElementById('prehab-ecog-flag');
-    if (!pf) return;
-    if (ecog >= 2 || mets === 'poor') {
-      pf.innerHTML = flag('a','\u26a0\ufe0f','Poor functional status detected \u2014 prehab strongly recommended','ECOG \u22652 or <1 MET recorded in Presentation. Physiotherapy referral and structured prehabilitation programme recommended before surgery.');
-    } else if (ecog === '1' || mets === 'moderate') {
-      pf.innerHTML = flag('b','\u2139\ufe0f','Borderline fitness \u2014 consider prehabilitation','ECOG 1 or moderate METs. Prehab may improve post-op recovery. Discuss with patient.');
-    }
-  }, 100);
+  // Auto prehab indication after module data restored
+  setTimeout(autoPrehabIndication, 150);
 
   return '<div class="two-col"><div>' +
 
@@ -2338,7 +2392,7 @@ function buildPreop() {
 
       // Weeks to surgery counter
       '<div class="fr" style="margin-bottom:12px;align-items:flex-end;">' +
-        '<div class="fg"><label>Surgery date (if confirmed)</label><input type="date" id="optim-surg-date" oninput="calcWeeksToSurg()"></div>' +
+        '<div class="fg"><label>Surgery date (if confirmed)</label><input type="date" id="optim-surg-date" oninput="calcWeeksToSurg();autoPrehabIndication()"></div>' +
         '<div id="weeks-to-surg-display" style="flex:1;text-align:center;padding:10px;border-radius:var(--rs);background:var(--sf2);border:1px solid var(--bd);min-height:44px;display:flex;align-items:center;justify-content:center;">' +
           '<span style="color:var(--hint);font-size:13px;">Enter surgery date for countdown</span>' +
         '</div>' +
