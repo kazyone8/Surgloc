@@ -2755,7 +2755,7 @@ function buildPostop() {
       '<div id="wr-checklist" style="margin-top:8px;"></div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-g">\u23f1\ufe0f</div><div><div class="ct">ERAS milestone tracker</div><div class="cs">Expected vs actual — deviations auto-flagged</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card" id="card-eras-tracker"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-g">\u23f1\ufe0f</div><div><div class="ct">ERAS milestone tracker</div><div class="cs">Expected vs actual — deviations auto-flagged</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       '<div class="fr" style="margin-bottom:10px;">' +
         '<div class="fg"><label>Surgery date</label><input type="date" id="eras-surg-date" oninput="renderErasTracker()"></div>' +
@@ -2763,6 +2763,8 @@ function buildPostop() {
       '</div>' +
       '<div id="eras-tracker-grid"></div>' +
     '</div></div>' +
+
+    '<div class="card" id="card-crp"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-r">\ud83e\ude78</div><div><div class="ct">FBC & CRP tracking</div><div class="cs">Enter daily results \u2014 rising CRP auto-flagged</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       flag('b','\u2139\ufe0f','When to check CRP \u2014 leak detection protocol',
         'POD 1: Baseline (expect 100\u2013200 mg/L \u2014 normal post-op rise)\n' +
@@ -2779,44 +2781,56 @@ function buildPostop() {
       '<div id="crp-flag"></div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-t">\ud83c\udf7d\ufe0f</div><div><div class="ct">Diet progression</div><div class="cs">Tap stage to expand — set POD and log setbacks</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card" id="card-diet"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-t">\ud83c\udf7d\ufe0f</div><div><div class="ct">Diet progression</div><div class="cs">Log each decision — AM and PM ward rounds</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
-      '<div id="diet-stages">' +
-        buildDietStage(0, '\ud83d\udca7', 'Nil by mouth',    'POD 0 \u2014 IV fluids only') +
-        buildDietStage(1, '\ud83e\udd64', 'Sips of water',   '30\u201360 mL/hr') +
-        buildDietStage(2, '\ud83c\udf75', 'Free fluids',     'Unlimited clear fluids') +
-        buildDietStage(3, '\ud83c\udf72', 'Light diet',      'Soup, yoghurt, porridge') +
-        buildDietStage(4, '\ud83c\udf7d\ufe0f', 'Normal diet', 'Patient-directed, full diet') +
-        buildDietStage(5, '\u2705', 'Discharge diet',  'Eating independently at home') +
-      '</div>' +
-      '<div class="div"></div>' +
-      '<div style="font-size:11px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">\u26a0\ufe0f Setback / complication</div>' +
-      '<div class="fr" style="grid-template-columns:1fr 1fr;">' +
-        '<div class="fg"><label>Setback type</label>' +
-          '<select id="diet-setback-type">' +
-            '<option value="">Select</option>' +
-            '<option value="vomit">Vomiting / intolerance</option>' +
-            '<option value="ng">NG tube inserted</option>' +
-            '<option value="ileus">Ileus — NBM reinstituted</option>' +
-            '<option value="aspiration">Aspiration risk</option>' +
-            '<option value="other">Other</option>' +
-          '</select>' +
+
+      // ERAS guide
+      '<details style="margin-bottom:10px;">' +
+        '<summary style="font-size:11.5px;color:var(--blue);font-weight:600;cursor:pointer;padding:6px 10px;background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--rs);list-style:none;">' +
+          '\ud83d\udcd6 ERAS diet targets — tap to expand' +
+        '</summary>' +
+        '<div style="margin-top:4px;padding:10px 12px;border:1px solid var(--bd);border-radius:var(--rs);font-size:11.5px;line-height:1.9;color:var(--muted);">' +
+          '<b style="color:var(--text);">POD 0</b> \u2014 Oral fluids within 4\u20136h of extubation. Sips / clear fluids.<br>' +
+          '<b style="color:var(--text);">POD 1</b> \u2014 Advance to free fluids or light diet. <u>Do NOT wait for flatus</u> \u2014 outdated practice.<br>' +
+          '<b style="color:var(--text);">POD 2\u20133</b> \u2014 Target normal/soft diet. If not advancing: exclude ileus, reduce opioids, mobilise.<br>' +
+          '<b style="color:var(--text);">POD 4+</b> \u2014 Should be on normal diet. Failure to advance = red flag, senior review.<br>' +
+          '<div style="margin-top:6px;padding:6px 10px;background:var(--amber-l);border-radius:var(--rs);color:var(--amber);font-size:11px;font-weight:600;">' +
+            '\u26a0\ufe0f Step back only for: active vomiting \u00b7 NG aspirate >200mL \u00b7 distension + absent bowel sounds \u00b7 rising CRP<br>' +
+            '\u2705 Do NOT step back for: nausea alone \u00b7 single vomit \u00b7 discomfort \u00b7 patient preference' +
+          '</div>' +
         '</div>' +
-        '<div class="fg"><label>On POD</label>' +
-          '<select id="diet-setback-pod">' +
-            '<option value="">Select</option>' +
-            '<option>POD 1</option><option>POD 2</option><option>POD 3</option>' +
-            '<option>POD 4</option><option>POD 5</option><option>POD 6+</option>' +
-          '</select>' +
+      '</details>' +
+
+      // Log entry form
+      '<div style="background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:12px;margin-bottom:10px;">' +
+        '<div style="font-size:10px;font-weight:800;color:var(--hint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">\u270f\ufe0f Log diet decision</div>' +
+        '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:8px;">' +
+          '<div class="fg"><label>POD</label><select id="diet-log-pod"><option>POD 0</option><option selected>POD 1</option><option>POD 2</option><option>POD 3</option><option>POD 4</option><option>POD 5</option><option>POD 6</option><option>POD 7+</option></select></div>' +
+          '<div class="fg"><label>Session</label><select id="diet-log-session"><option value="AM">\ud83c\udf05 AM ward round</option><option value="PM">\ud83c\udf06 PM review</option><option value="Night">\ud83c\udf19 Night</option></select></div>' +
+          '<div class="fg"><label>Diet stage</label><select id="diet-log-stage"><option value="0">\ud83d\udca7 NBM</option><option value="1">\ud83e\udd64 Sips of water</option><option value="2">\ud83c\udf75 Free fluids</option><option value="3" selected>\ud83c\udf72 Light diet</option><option value="4">\ud83c\udf7d\ufe0f Normal diet</option><option value="5">\u2705 Discharge diet</option></select></div>' +
         '</div>' +
+        '<div class="fr" style="margin-bottom:8px;">' +
+          '<div class="fg"><label>Action</label><div class="og" id="diet-action-grp" style="margin-top:4px;">' +
+            optBtn('\u2191 Advance','diet-action-grp','sel-g') +
+            optBtn('\u2192 Maintain','diet-action-grp','sel') +
+            optBtn('\u2193 Step back','diet-action-grp','sel-r') +
+          '</div></div>' +
+          '<div class="fg"><label>Reason</label><select id="diet-log-reason"><option value="">Select</option><option>Tolerating well \u2713</option><option>Cautious advance</option><option>Vomiting</option><option>Nausea — caution</option><option>NG aspirate high</option><option>Abdominal distension</option><option>CRP concern</option><option>Patient preference</option><option>Clinical decision</option></select></div>' +
+        '</div>' +
+        '<div class="fg fr1" style="margin-bottom:8px;"><label>Notes</label><input type="text" id="diet-log-notes" placeholder="e.g. Tolerating light diet well. No nausea. Advance to normal diet PM."></div>' +
+        '<button class="btn btn-p" onclick="addDietLog()" style="width:100%;">+ Log diet decision</button>' +
       '</div>' +
-      '<div class="fg fr1"><label>Notes</label><input type="text" id="diet-setback-notes" placeholder="e.g. Vomited after lunch POD 2. Reverted to sips. NG inserted POD 3 — 300mL aspirate."></div>' +
-      '<button class="btn btn-p" onclick="logDietSetback()" style="width:100%;margin-bottom:4px;">+ Log setback</button>' +
-      '<div id="diet-setback-list" style="margin-top:6px;"></div>' +
+
+      // Smart prompt
+      '<div id="diet-smart-prompt" style="margin-bottom:10px;"></div>' +
+
+      // Timeline
+      '<div id="diet-timeline"><div style="font-size:12px;color:var(--hint);text-align:center;padding:8px;">No diet entries yet — log first decision above</div></div>' +
       '<div id="diet-flag" style="margin-top:6px;"></div>' +
+
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-g">\ud83d\udca8</div><div><div class="ct">Bowel function</div><div class="cs">Flatus and bowel movement — key ERAS milestones</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card" id="card-bowel"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-g">\ud83d\udca8</div><div><div class="ct">Bowel function</div><div class="cs">Flatus and bowel movement — key ERAS milestones</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       flag('b','\u2139\ufe0f','ERAS targets for bowel function',
         'First flatus: expected POD 1\u20132\n' +
@@ -2893,7 +2907,7 @@ function buildPostop() {
       '<div id="pain-log" style="margin-top:8px;"></div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-g">\ud83d\udeb6</div><div><div class="ct">Mobilisation</div><div class="cs">Daily ambulation — ERAS target: out of bed POD 0</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card" id="card-mob"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-g">\ud83d\udeb6</div><div><div class="ct">Mobilisation</div><div class="cs">Daily ambulation — ERAS target: out of bed POD 0</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       flag('b','\u2139\ufe0f','ERAS mobilisation targets','POD 0: sit out of bed \u22652h. POD 1: walk to corridor. POD 2+: walk independently. Document barriers if not achieved.') +
       '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px;">' +
@@ -2924,7 +2938,7 @@ function buildPostop() {
       '<div id="mob-log" style="margin-top:8px;"></div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-r">\ud83e\udda0</div><div><div class="ct">IV antibiotic stewardship</div><div class="cs">No infection = no antibiotics. Review daily.</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card" id="card-abx"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-r">\ud83e\udda0</div><div><div class="ct">IV antibiotic stewardship</div><div class="cs">No infection = no antibiotics. Review daily.</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       flag('b','\u2139\ufe0f','Prophylaxis: single-dose or 24h maximum','Post-op fever alone is not an indication. Always identify source first. Stop if no clinical or biochemical evidence of infection.') +
       '<div class="fr" style="margin-top:10px;">' +
@@ -2990,7 +3004,7 @@ function buildPostop() {
       '<div id="wound-log" style="margin-top:8px;"></div>' +
     '</div></div>' +
 
-    '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-t">\ud83d\udd35</div><div><div class="ct">Catheter & Clexane</div><div class="cs">Enforced removal POD1 \u00b7 VTE prophylaxis daily</div></div></div><div class="cv open">\u25be</div></div>' +
+    '<div class="card" id="card-cath-clex"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-t">\ud83d\udd35</div><div><div class="ct">Catheter & Clexane</div><div class="cs">Enforced removal POD1 \u00b7 VTE prophylaxis daily</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
       '<div class="fr">' +
         '<div class="fg"><label>Catheter status</label><div class="og" id="cath-grp" style="margin-top:4px;">' +
@@ -3385,7 +3399,7 @@ function startPostop() {
 }
 
 function initPostop() {
-  labResults = []; painLog = []; problems = []; dietSetbacks = []; stomaLog = []; mobLog = []; woundLog = [];
+  labResults = []; painLog = []; problems = []; dietSetbacks = []; dietLog = []; stomaLog = []; mobLog = []; woundLog = [];
   dietStage = -1;
   dcDone = new Array(14).fill(false);
 }
@@ -3563,29 +3577,164 @@ function undoDietStage(i) {
   toast('\u21ba Undone: ' + labels[i]);
 }
 
-var dietSetbacks = [];
+var dietSetbacks = []; // kept for compatibility
+var dietLog = [];      // new timeline log
 
-function logDietSetback() {
-  var type  = document.getElementById('diet-setback-type')  ? document.getElementById('diet-setback-type').value  : '';
-  var pod   = document.getElementById('diet-setback-pod')   ? document.getElementById('diet-setback-pod').value   : '';
-  var notes = document.getElementById('diet-setback-notes') ? document.getElementById('diet-setback-notes').value.trim() : '';
-  if (!type || !pod) { toast('Select setback type and POD'); return; }
-  dietSetbacks.push({type:type, pod:pod, notes:notes, id:Date.now()});
-  renderDietSetbacks();
-  // Reset form
-  document.getElementById('diet-setback-type').value = '';
-  document.getElementById('diet-setback-pod').value  = '';
-  if (document.getElementById('diet-setback-notes')) document.getElementById('diet-setback-notes').value = '';
-  // Show flag if NG
-  if (type === 'ng') {
-    var f = document.getElementById('diet-flag');
-    if (f) f.innerHTML = flag('r','\ud83d\udea8','NG tube inserted — refeeding plan required','Document NG aspirate volume. Plan: aspirate check 4-hourly, commence re-feed when aspirate &lt;200mL. Step diet back to sips when NG removed. Senior review.');
-  } else if (type === 'vomit' || type === 'ileus') {
-    var f = document.getElementById('diet-flag');
-    if (f) f.innerHTML = flag('a','\u26a0\ufe0f','Diet setback — step back and reassess','Consider reverting to previous diet stage. Review for ileus (see stepwise protocol). Ensure adequate IV fluid replacement if NBM reinstituted.');
-  }
-  toast('\u26a0\ufe0f Setback logged: ' + type);
+var DIET_LABELS = ['NBM','\ud83e\udd64 Sips','\ud83c\udf75 Free fluids','\ud83c\udf72 Light diet','\ud83c\udf7d\ufe0f Normal diet','\u2705 Discharge diet'];
+var DIET_ERAS   = [0, 1, 2, 3, 4, 5]; // expected minimum stage per POD
+
+function addDietLog() {
+  var pod     = document.getElementById('diet-log-pod')     ? document.getElementById('diet-log-pod').value     : '';
+  var session = document.getElementById('diet-log-session') ? document.getElementById('diet-log-session').value : 'AM';
+  var stage   = document.getElementById('diet-log-stage')   ? parseInt(document.getElementById('diet-log-stage').value) : 0;
+  var reason  = document.getElementById('diet-log-reason')  ? document.getElementById('diet-log-reason').value  : '';
+  var notes   = document.getElementById('diet-log-notes')   ? document.getElementById('diet-log-notes').value.trim() : '';
+  var actionEl = document.querySelector('#diet-action-grp .opt.sel-g, #diet-action-grp .opt.sel, #diet-action-grp .opt.sel-r');
+  var action  = actionEl ? actionEl.textContent.trim() : '';
+
+  if (!pod) { toast('Select POD'); return; }
+
+  var entry = { pod:pod, session:session, stage:stage, action:action, reason:reason, notes:notes, id:Date.now() };
+  dietLog.push(entry);
+
+  // Update global dietStage to latest entry
+  dietStage = stage;
+
+  renderDietTimeline();
+  dietSmartPrompt();
+  refreshWardRound();
+
+  // Clear form
+  if (document.getElementById('diet-log-notes')) document.getElementById('diet-log-notes').value = '';
+  if (document.getElementById('diet-log-reason')) document.getElementById('diet-log-reason').value = '';
+  toast('\u2705 Diet logged: ' + DIET_LABELS[stage] + ' \u00b7 ' + session);
 }
+
+function deleteDietLog(id) {
+  dietLog = dietLog.filter(function(e) { return e.id !== id; });
+  dietStage = dietLog.length ? dietLog[dietLog.length-1].stage : -1;
+  renderDietTimeline();
+  dietSmartPrompt();
+  refreshWardRound();
+  toast('Entry removed');
+}
+
+function renderDietTimeline() {
+  var el = document.getElementById('diet-timeline');
+  if (!el) return;
+  if (!dietLog.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--hint);text-align:center;padding:8px;">No diet entries yet</div>';
+    return;
+  }
+
+  // Group by POD
+  var byPod = {};
+  dietLog.forEach(function(e) {
+    if (!byPod[e.pod]) byPod[e.pod] = [];
+    byPod[e.pod].push(e);
+  });
+
+  var html = '';
+  Object.keys(byPod).forEach(function(pod) {
+    var entries = byPod[pod];
+    // Detect stepback within POD
+    var hasStepback = entries.length > 1 && entries.some(function(e,i) {
+      return i > 0 && e.stage < entries[i-1].stage;
+    });
+
+    html += '<div style="margin-bottom:10px;">' +
+      '<div style="font-size:10px;font-weight:800;color:var(--hint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;display:flex;align-items:center;gap:8px;">' +
+        pod +
+        (hasStepback ? '<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;background:var(--amber-l);color:var(--amber);">\u21a9 Step back logged</span>' : '') +
+      '</div>';
+
+    entries.forEach(function(e) {
+      var isBack = e.action && e.action.indexOf('\u2193') > -1;
+      var isAdv  = e.action && e.action.indexOf('\u2191') > -1;
+      var col    = isBack ? 'var(--red)' : isAdv ? 'var(--green)' : 'var(--blue)';
+      var sessionIcon = e.session === 'AM' ? '\ud83c\udf05' : e.session === 'PM' ? '\ud83c\udf06' : '\ud83c\udf19';
+
+      html +=
+        '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:var(--rs);background:var(--sf2);border:1px solid ' + (isBack ? 'var(--red-b)' : 'var(--bd)') + ';border-left:3px solid ' + col + ';margin-bottom:4px;">' +
+          '<div style="flex:1;">' +
+            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+              '<span style="font-size:11px;font-weight:700;color:var(--hint);">' + sessionIcon + ' ' + e.session + '</span>' +
+              '<span style="font-size:12px;font-weight:700;color:' + col + ';">' + (e.action || '') + ' ' + DIET_LABELS[e.stage] + '</span>' +
+              (e.reason ? '<span style="font-size:10.5px;color:var(--muted);">\u00b7 ' + e.reason + '</span>' : '') +
+            '</div>' +
+            (e.notes ? '<div style="font-size:11.5px;color:var(--muted);margin-top:2px;">' + e.notes + '</div>' : '') +
+          '</div>' +
+          '<button onclick="deleteDietLog(' + e.id + ')" style="flex-shrink:0;width:22px;height:22px;border-radius:5px;border:1px solid var(--bd2);background:none;color:var(--hint);font-size:12px;cursor:pointer;" onmouseover="this.style.background=\'var(--red-l)\';this.style.color=\'var(--red)\'" onmouseout="this.style.background=\'none\';this.style.color=\'var(--hint)\'">\u00d7</button>' +
+        '</div>';
+    });
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+function dietSmartPrompt() {
+  var f = document.getElementById('diet-smart-prompt');
+  if (!f) return;
+  if (!dietLog.length) { f.innerHTML = ''; return; }
+
+  var last    = dietLog[dietLog.length - 1];
+  var podNum  = parseInt(last.pod) || 0;
+  var stage   = last.stage;
+  var isBack  = last.action && last.action.indexOf('\u2193') > -1;
+
+  // CRP check
+  var crpRising = labResults.length >= 2 &&
+    labResults[labResults.length-1].crp > labResults[labResults.length-2].crp &&
+    labResults[labResults.length-1].crp > 100;
+
+  // Step back prompt
+  if (isBack) {
+    f.innerHTML = flag('r','\ud83d\udea8','Diet stepped back \u2014 assess for ileus',
+      'Current: ' + DIET_LABELS[stage] + '\n\n' +
+      'Immediate assessment:\n' +
+      '\u2022 Abdominal exam \u2014 distension? bowel sounds?\n' +
+      '\u2022 NG aspirate if tube in situ \u2014 if >200mL, keep NBM\n' +
+      '\u2022 Review opioid use \u2014 step down analgesia\n' +
+      '\u2022 Check flatus / bowel movement\n' +
+      '\u2022 If no improvement by next round \u2014 follow ileus protocol\n' +
+      (crpRising ? '\u26a0\ufe0f CRP rising \u2014 exclude anastomotic leak before resuming diet' : '')
+    );
+    return;
+  }
+
+  // CRP rising warning when advancing
+  if (crpRising && stage >= 2) {
+    f.innerHTML = flag('a','\u26a0\ufe0f','CRP rising \u2014 caution before advancing diet',
+      'CRP ' + labResults[labResults.length-2].crp + ' \u2192 ' + labResults[labResults.length-1].crp + ' mg/L\n' +
+      'Advancing diet while CRP rising may mask anastomotic leak.\n' +
+      '\u2022 Ensure patient has no peritonism, fever, tachycardia\n' +
+      '\u2022 If any concern \u2014 hold diet and escalate to senior'
+    );
+    return;
+  }
+
+  // ERAS advancement prompt based on POD
+  var expectedStage = Math.min(podNum + 1, 4); // POD 0=sips, POD 1=light, POD 2+=normal
+  if (stage < expectedStage) {
+    var nextLabel = DIET_LABELS[Math.min(stage + 1, 5)];
+    f.innerHTML = flag('b','\u27a1\ufe0f','ERAS target: consider advancing to ' + nextLabel,
+      'POD ' + podNum + ' target: ' + DIET_LABELS[expectedStage] + '. Patient currently on: ' + DIET_LABELS[stage] + '.\n\n' +
+      'Ready to advance if:\n' +
+      '\u2022 No active vomiting\n' +
+      '\u2022 Abdomen soft, non-tender\n' +
+      '\u2022 CRP trajectory acceptable\n' +
+      '\u2022 Patient willing to try\n\n' +
+      'Log next diet decision at PM review.'
+    );
+  } else if (stage >= 4) {
+    f.innerHTML = flag('g','\u2705','On normal diet \u2014 ERAS target met','Patient tolerating normal diet. Proceed to discharge planning checklist.');
+  } else {
+    f.innerHTML = flag('g','\u2705','Diet on track \u2014 ' + DIET_LABELS[stage],'Continue current stage. Reassess at next ward round.');
+  }
+}
+
+function logDietSetback() { /* deprecated — use addDietLog */ }
 
 var stomaLog = [], mobLog = [], woundLog = [];
 
@@ -3977,11 +4126,25 @@ function showWardRound(pod) {
     '</div>' +
     items.map(function(item) {
       var cfg = urgencyConfig[item.urgency] || urgencyConfig.blue;
-      // Collapse green items by default — they're done
       var isGreen = item.urgency === 'green';
-      return '<div style="background:' + cfg.bg + ';border:1px solid ' + cfg.bd + ';border-radius:var(--rs);padding:10px 13px;margin-bottom:6px;' + (isGreen ? 'opacity:0.7;' : '') + '">' +
+      // Map item title to card ID
+      var cardMap = {
+        'Catheter':                  'card-cath-clex',
+        'Clexane (VTE prophylaxis)': 'card-cath-clex',
+        'Clexane':                   'card-cath-clex',
+        'CRP trend':                 'card-crp',
+        'Diet progression':          'card-diet',
+        'IV antibiotics':            'card-abx',
+        'IV antibiotic stewardship': 'card-abx',
+        'Mobilisation':              'card-mob',
+      };
+      var cardId = cardMap[item.title] || '';
+      var clickable = cardId ? 'cursor:pointer;' : '';
+      var onclick   = cardId ? 'onclick="scrollToPanel(\'' + cardId + '\')"' : '';
+      var tapHint   = cardId && !isGreen ? '<span style="font-size:10px;color:' + cfg.tc + ';opacity:.7;float:right;">\u2193 tap to go</span>' : '';
+      return '<div ' + onclick + ' style="background:' + cfg.bg + ';border:1px solid ' + cfg.bd + ';border-radius:var(--rs);padding:10px 13px;margin-bottom:6px;' + (isGreen ? 'opacity:0.7;' : '') + clickable + '">' +
         '<div style="font-size:11.5px;font-weight:700;color:' + cfg.tc + ';margin-bottom:' + (item.steps[0].detail ? '6px' : '0') + ';">' +
-          item.icon + ' ' + item.title + ' \u2014 ' + item.steps[0].msg +
+          item.icon + ' ' + item.title + ' \u2014 ' + item.steps[0].msg + tapHint +
         '</div>' +
         (item.steps[0].detail
           ? '<div style="font-size:11px;color:#334155;line-height:1.7;white-space:pre-line;background:rgba(0,0,0,.04);border-radius:6px;padding:8px 10px;">' + item.steps[0].detail + '</div>'
@@ -4670,6 +4833,52 @@ function selGrpEl(el, grpId, cls) {
   }
 }
 
+function scrollToPanel(cardId) {
+  var el = document.getElementById(cardId);
+  if (!el) return;
+  // Expand card if collapsed
+  var body = el.querySelector('.cb');
+  if (body && body.classList.contains('closed')) {
+    var hdr = el.querySelector('.ch');
+    if (hdr) tc(hdr);
+  }
+  el.scrollIntoView({behavior:'smooth', block:'start'});
+  // Flash highlight
+  el.style.transition = 'box-shadow .3s';
+  el.style.boxShadow = '0 0 0 3px var(--blue-b)';
+  setTimeout(function() { el.style.boxShadow = ''; }, 1500);
+}
+
+function checkBowelFunction() {
+  var f = document.getElementById('bowel-flag');
+  if (!f) return;
+  var flatusEl = document.querySelector('#flatus-grp .sel-r, #flatus-grp .sel-a');
+  var flatusLate = !!flatusEl;
+  var flatusNone = document.querySelector('#flatus-grp .opt:last-child.sel');
+
+  var bowelEl = document.querySelector('#bowel-grp .sel-r');
+  var bowelLate = !!bowelEl;
+  var bowelNone = document.querySelector('#bowel-grp .opt:last-child.sel');
+
+  if (flatusLate || bowelLate) {
+    f.innerHTML = flag('r','\ud83d\udea8','Delayed bowel function \u2014 consider ileus protocol',
+      (flatusLate ? '\u26a0\ufe0f Flatus delayed beyond POD 3\n' : '') +
+      (bowelLate  ? '\u26a0\ufe0f Bowel movement delayed beyond POD 4\n' : '') +
+      '\nFollow ileus protocol:\n' +
+      '\u2022 Exclude mechanical obstruction first (AXR / CT if clinical concern)\n' +
+      '\u2022 Ensure adequate mobilisation\n' +
+      '\u2022 Review opioid use \u2014 step down analgesia\n' +
+      '\u2022 Ensure oral intake — stimulates peristalsis\n' +
+      '\u2022 Consider Lactulose or Movicol if no contraindication\n' +
+      '\u2022 Senior review if no improvement by POD 5'
+    );
+  } else if (flatusNone || bowelNone) {
+    f.innerHTML = flag('b','\u2139\ufe0f','Bowel function not yet recorded','Document first flatus and first bowel movement — key ERAS milestones for the handover sheet.');
+  } else {
+    f.innerHTML = flag('g','\u2705','Bowel function returning \u2014 on track','Continue ERAS protocol. Advance diet as tolerated.');
+  }
+}
+
 function closeMo(id) { document.getElementById(id).style.display = 'none'; }
 function toggleSb() {
   document.getElementById('sb').classList.toggle('open');
@@ -4795,6 +5004,13 @@ function doAutosave() {
       if (lastLab.hb)  data['_last_hb']  = lastLab.hb;
     }
     if (dietStage >= 0) data['_diet_stage'] = dietStage;
+    if (dietLog.length) data['_diet_log'] = dietLog;
+    if (dietLog.length > 1) {
+      // Flag if last entry was a stepback
+      var lastDiet = dietLog[dietLog.length-1];
+      var prevDiet = dietLog[dietLog.length-2];
+      if (lastDiet.stage < prevDiet.stage) data['_setback_count'] = (parseInt(data['_setback_count']||0) + 1);
+    }
     if (painLog.length) data['_last_nrs'] = painLog[painLog.length-1].nrs;
     var cathRemoved = document.querySelector('#cath-grp .sel-g');
     if (cathRemoved) data['_cath_removed'] = true;
