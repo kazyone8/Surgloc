@@ -693,10 +693,13 @@ function renderCases() {
   }
   var html = active.map(caseCardHTML).join('');
   if (deleted.length) {
-    html += '<div style="margin-top:18px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">' +
-      '<div style="flex:1;height:1px;background:var(--bd);"></div>' +
-      '<span style="font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.08em;">Archived (' + deleted.length + ')</span>' +
-      '<div style="flex:1;height:1px;background:var(--bd);"></div>' +
+    html += '<div style="margin-top:20px;margin-bottom:10px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);">' +
+        '<span style="font-size:16px;">\ud83d\uddd1\ufe0f</span>' +
+        '<span style="font-size:12px;font-weight:700;color:var(--muted);">Recycle bin</span>' +
+        '<span style="font-size:11px;color:var(--hint);">' + deleted.length + ' case' + (deleted.length > 1 ? 's' : '') + '</span>' +
+        (isConsultant() ? '<button onclick="emptyRecycleBin()" style="margin-left:auto;padding:3px 10px;border-radius:20px;border:1px solid var(--red-b);background:var(--red-l);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">\ud83d\uddd1 Empty bin</button>' : '') +
+      '</div>' +
     '</div>';
     html += deleted.map(caseCardHTML).join('');
   }
@@ -708,16 +711,17 @@ function caseCardHTML(c) {
   var sel = curCase && curCase.id === c.id ? ' sel' : '';
 
   if (c.deleted) {
-    // Archived / soft-deleted card — greyed out, restore button only
-    return '<div class="cc" style="opacity:0.45;filter:grayscale(60%);cursor:default;pointer-events:none;border-style:dashed;">' +
-      '<div class="cc-av" style="background:#ffffff11;color:#64748b;">' + c.id.slice(0,2) + '</div>' +
+    var archivedDate = c.deletedAt ? new Date(c.deletedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Unknown date';
+    return '<div class="cc" style="opacity:0.6;border-style:dashed;cursor:default;pointer-events:none;">' +
+      '<div class="cc-av" style="background:var(--sf2);color:var(--hint);">\ud83d\uddd1</div>' +
       '<div class="cc-info">' +
-        '<div class="cc-id" style="color:#64748b;">' + c.id + '</div>' +
-        '<div class="cc-proc" style="color:#475569;">' + c.procLabel + '</div>' +
-        '<div class="cc-meta">Archived</div>' +
+        '<div class="cc-id" style="color:var(--hint);">' + c.id + '</div>' +
+        '<div class="cc-proc" style="color:var(--muted);">' + c.procLabel + '</div>' +
+        '<div class="cc-meta">Deleted ' + archivedDate + ' \u00b7 ' + (c.surgeon||'\u2014') + '</div>' +
       '</div>' +
-      '<div style="pointer-events:all;display:flex;gap:6px;align-items:center;">' +
-        '<button onclick="event.stopPropagation();restoreCase(\'' + c.id + '\')" style="padding:4px 11px;border-radius:20px;border:1px solid var(--green-b);background:var(--green-l);color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">\u21ba Restore</button>' +
+      '<div style="pointer-events:all;display:flex;gap:6px;align-items:center;flex-shrink:0;">' +
+        '<button onclick="event.stopPropagation();restoreCase(\'' + c.id + '\')" style="padding:5px 12px;border-radius:20px;border:1px solid var(--green-b);background:var(--green-l);color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">\u21ba Restore</button>' +
+        (isConsultant() ? '<button onclick="event.stopPropagation();permanentDelete(\'' + c.id + '\')" style="padding:5px 10px;border-radius:20px;border:1px solid var(--red-b);background:var(--red-l);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">\ud83d\uddd1</button>' : '') +
       '</div>' +
     '</div>';
   }
@@ -743,7 +747,7 @@ function archiveCase(id) {
   var c = cases.find(function(x) { return x.id === id; });
   if (!c) return;
   c.deleted = true;
-  // If this was the active case, clear it
+  c.deletedAt = new Date().toISOString();
   if (curCase && curCase.id === id) {
     curCase = null;
     document.getElementById('pt-ctx').style.display = 'none';
@@ -752,7 +756,29 @@ function archiveCase(id) {
   saveState();
   renderDash();
   renderCases();
-  toast('\ud83d\uddd1 ' + id + ' archived \u2014 scroll down to restore');
+  toast('\ud83d\uddd1 ' + id + ' moved to recycle bin \u2014 scroll down to restore');
+}
+
+function permanentDelete(id) {
+  if (!isConsultant()) { toast('\ud83d\udd12 Only consultants can permanently delete'); return; }
+  if (!confirm('Permanently delete ' + id + '? This cannot be undone.')) return;
+  cases = cases.filter(function(x) { return x.id !== id; });
+  saveState();
+  renderDash();
+  renderCases();
+  toast('\ud83d\uddd1 ' + id + ' permanently deleted');
+}
+
+function emptyRecycleBin() {
+  if (!isConsultant()) { toast('\ud83d\udd12 Only consultants can empty the recycle bin'); return; }
+  var count = cases.filter(function(c) { return c.deleted; }).length;
+  if (!count) { toast('Recycle bin is already empty'); return; }
+  if (!confirm('Permanently delete all ' + count + ' case(s) in the recycle bin? This cannot be undone.')) return;
+  cases = cases.filter(function(c) { return !c.deleted; });
+  saveState();
+  renderDash();
+  renderCases();
+  toast('\ud83d\uddd1 Recycle bin emptied — ' + count + ' case(s) permanently deleted');
 }
 
 function restoreCase(id) {
@@ -4729,14 +4755,15 @@ function mergeCase(local, incoming) {
 
 // ── Encode / decode — supports single case AND full database ──
 function encodeAll() {
-  var activeCases = cases.filter(function(c) { return !c.deleted; });
+  // Full export includes ALL cases (active + deleted) so deletions propagate
   var payload = JSON.stringify({
     v: 2,
     type: 'full',
     ts: Date.now(),
     author: curUser.name,
-    count: activeCases.length,
-    cases: activeCases
+    authorId: curUser.id,
+    count: cases.length,
+    cases: cases   // includes deleted:true cases
   });
   return 'SL3:' + toBase64(xorStr(payload, SYNC_KEY));
 }
@@ -4754,11 +4781,12 @@ function encodeSingle(c) {
 
 function decodeSync(str) {
   try {
-    str = str.trim();
-    if (str.startsWith('SL3:')) {
+    str = str.trim().toUpperCase().startsWith('SL') ? str.trim() : str.trim();
+    var upper = str.toUpperCase();
+    if (upper.startsWith('SL3:')) {
       var raw = xorStr(fromBase64(str.slice(4)), SYNC_KEY);
       return JSON.parse(raw); // type: 'full'
-    } else if (str.startsWith('SL2:')) {
+    } else if (upper.startsWith('SL2:')) {
       var raw = xorStr(fromBase64(str.slice(4)), SYNC_KEY);
       var parsed = JSON.parse(raw);
       parsed.type = parsed.type || 'single';
@@ -4921,7 +4949,7 @@ function previewImport() {
   var btn = document.getElementById('sync-import-btn');
   if (!raw) { preview.innerHTML = ''; btn.disabled = true; return; }
 
-  var match = raw.match(/SL[23]:[A-Za-z0-9+\/=]+/);
+  var match = raw.match(/[Ss][Ll][23]:[A-Za-z0-9+\/=]+/);
   if (!match) {
     preview.innerHTML = '<div class="flag flag-r" style="margin-top:8px;"><div class="fi">\u274c</div><div class="fb"><div class="ft">Not a valid SurgLog code</div><p>Make sure you copied the full SL2: or SL3: code from Teams.</p></div></div>';
     btn.disabled = true;
@@ -4939,16 +4967,21 @@ function previewImport() {
 
   if (decoded.type === 'full') {
     var incoming = decoded.cases || [];
-    var newCount = 0, mergeCount = 0;
+    var newCount = 0, mergeCount = 0, willDelete = 0;
+    var senderIsConsultant = ROLE_CONSULTANT.indexOf(decoded.authorId) > -1;
     incoming.forEach(function(c) {
-      if (!cases.find(function(x) { return x.id === c.id; })) newCount++;
+      var local = cases.find(function(x) { return x.id === c.id; });
+      if (!local) newCount++;
+      else if (senderIsConsultant && c.deleted && !local.deleted) willDelete++;
       else mergeCount++;
     });
+    var deleteWarning = willDelete > 0 ? '<p style="color:var(--red);font-weight:700;">\ud83d\uddd1 ' + willDelete + ' case(s) will be deleted (sender is consultant)</p>' : '';
     preview.innerHTML =
-      '<div class="flag flag-g" style="margin-top:8px;"><div class="fi">\u2705</div><div class="fb">' +
-        '<div class="ft">Full database — ' + incoming.length + ' cases from ' + decoded.author + '</div>' +
+      '<div class="flag flag-' + (willDelete ? 'a' : 'g') + '" style="margin-top:8px;"><div class="fi">' + (willDelete ? '\u26a0\ufe0f' : '\u2705') + '</div><div class="fb">' +
+        '<div class="ft">Full database \u2014 ' + incoming.filter(function(c){return !c.deleted;}).length + ' active cases from ' + decoded.author + '</div>' +
         '<p>Exported at ' + ts + '</p>' +
-        '<p>\ud83d\udfe2 ' + newCount + ' new cases to add &nbsp;\u00b7&nbsp; \ud83d\udd04 ' + mergeCount + ' existing cases to merge</p>' +
+        '<p>\ud83d\udfe2 ' + newCount + ' new &nbsp;\u00b7&nbsp; \ud83d\udd04 ' + mergeCount + ' to merge</p>' +
+        deleteWarning +
       '</div></div>';
   } else {
     var c = decoded.case;
@@ -4974,24 +5007,34 @@ function doImport() {
 
   if (decoded.type === 'full') {
     var incoming = decoded.cases || [];
-    var newCount = 0, mergeCount = 0;
+    var newCount = 0, mergeCount = 0, deletedCount = 0;
+    var senderIsConsultant = ROLE_CONSULTANT.indexOf(decoded.authorId) > -1;
+
     incoming.forEach(function(inCase) {
       var localIdx = cases.findIndex(function(x) { return x.id === inCase.id; });
       if (localIdx === -1) {
+        // New case — add it (even if deleted, so both sides stay in sync)
         cases.push(inCase);
         newCount++;
       } else {
-        // Wrap as single-case payload for mergeCase
-        var wrapped = { ts: decoded.ts, author: decoded.author, case: inCase };
-        cases[localIdx] = mergeCase(cases[localIdx], wrapped);
-        mergeCount++;
+        // Existing case — honour deleted flag only if sender is consultant
+        if (senderIsConsultant && inCase.deleted && !cases[localIdx].deleted) {
+          cases[localIdx].deleted = true;
+          deletedCount++;
+        } else if (!inCase.deleted) {
+          var wrapped = { ts: decoded.ts, author: decoded.author, case: inCase };
+          cases[localIdx] = mergeCase(cases[localIdx], wrapped);
+          mergeCount++;
+        }
       }
     });
     saveState();
     closeMo('mo-sync-import');
     renderDash();
     renderCases();
-    toast('\u2705 ' + newCount + ' new + ' + mergeCount + ' merged — database updated');
+    var msg = '\u2705 ' + newCount + ' new + ' + mergeCount + ' merged';
+    if (deletedCount) msg += ' + ' + deletedCount + ' deleted';
+    toast(msg + ' \u2014 database updated');
 
   } else {
     var incoming = decoded;
