@@ -1828,6 +1828,14 @@ function renderErasTracker() {
   var currentPOD = Math.round((today - surg) / (1000*60*60*24));
 
   // ERAS milestones: { label, icon, expectedPOD, achieved: bool, achievedPOD }
+  // Read case data to determine which milestones are applicable
+  var sgData  = (curCase && curCase.data && curCase.data.surgery)  || {};
+  var preData = (curCase && curCase.data && curCase.data.preop)    || {};
+  var hasDrain = sgData['drain-grp'] && sgData['drain-grp'].indexOf('Yes') > -1;
+  var hasStoma = preData['stoma-ant-cl'] && (preData['stoma-ant-cl'].indexOf('Yes') > -1 || preData['stoma-ant-cl'].indexOf('Possible') > -1);
+  // Also check from surgery data anastomosis type
+  if (!hasStoma && sgData['sg-anastomosis'] && sgData['sg-anastomosis'].indexOf('end stoma') > -1) hasStoma = true;
+
   var milestones = [
     { label:'Oral fluids commenced',       icon:'\ud83e\udd64', expectedPOD:0,  id:'ms-fluids'  },
     { label:'Catheter removed',            icon:'\ud83d\udd35', expectedPOD:1,  id:'ms-cath'    },
@@ -1837,10 +1845,10 @@ function renderErasTracker() {
     { label:'IV antibiotics stopped',      icon:'\ud83e\udda0', expectedPOD:2,  id:'ms-abx'     },
     { label:'Normal diet tolerated',       icon:'\ud83c\udf71', expectedPOD:3,  id:'ms-normaldiet' },
     { label:'Pain on oral analgesia only', icon:'\ud83d\udc8a', expectedPOD:3,  id:'ms-pain'    },
-    { label:'Drain removed',               icon:'\ud83d\udca7', expectedPOD:3,  id:'ms-drain'   },
-    { label:'Stoma education complete',    icon:'\ud83d\udcd6', expectedPOD:4,  id:'ms-stoma'   },
+    hasDrain ? { label:'Drain removed',            icon:'\ud83d\udca7', expectedPOD:3,  id:'ms-drain'   } : null,
+    hasStoma ? { label:'Stoma education complete', icon:'\ud83d\udcd6', expectedPOD:4,  id:'ms-stoma'   } : null,
     { label:'Discharge ready',             icon:'\ud83c\udfe0', expectedPOD:4,  id:'ms-dc'      },
-  ];
+  ].filter(Boolean);
 
   // Read stored achieved state
   if (!window.erasAchieved) window.erasAchieved = {};
@@ -4185,13 +4193,13 @@ function showWardRound(pod) {
     blue:  { bg:'var(--blue-l)',  bd:'var(--blue-b)',  tc:'var(--blue)',  icon:'\u2139\ufe0f' },
   };
 
-  // Count outstanding items
-  var pending = items.filter(function(i) { return i.urgency !== 'green'; }).length;
+  // Count outstanding items — red/amber only, blue is informational
+  var pending = items.filter(function(i) { return i.urgency === 'red' || i.urgency === 'amber'; }).length;
   var headerColor = pending === 0 ? 'var(--green)' : pending >= 3 ? 'var(--red)' : 'var(--amber)';
   var headerIcon  = pending === 0 ? '\u2705' : '\ud83c\udfe5';
   var headerMsg   = pending === 0
     ? 'All ' + pod + ' checks satisfied \u2014 good work!'
-    : pending + ' item' + (pending > 1 ? 's' : '') + ' need attention on ' + pod;
+    : pending + ' item' + (pending > 1 ? 's' : '') + ' need' + (pending === 1 ? 's' : '') + ' attention on ' + pod;
 
   el.innerHTML =
     '<div style="padding:8px 12px;border-radius:var(--rs);background:rgba(0,0,0,.04);margin-bottom:10px;display:flex;align-items:center;gap:8px;">' +
