@@ -1075,7 +1075,15 @@ function restoreMod(mod) {
     // Restore ERAS milestone achieved state
     if (data['_eras_achieved']) { window.erasAchieved = data['_eras_achieved']; }
     else if (!window.erasAchieved) { window.erasAchieved = {}; }
-    setTimeout(function() { renderErasTracker(); refreshWardRound(); }, 100);
+    setTimeout(function() {
+      // Auto-populate ERAS surgery date from Surgery module
+      var surgEl = document.getElementById('eras-surg-date');
+      if (surgEl && !surgEl.value && curCase && curCase.data && curCase.data.surgery && curCase.data.surgery['sg-date']) {
+        surgEl.value = curCase.data.surgery['sg-date'];
+      }
+      renderErasTracker();
+      refreshWardRound();
+    }, 100);
   }
 }
 
@@ -4089,6 +4097,16 @@ function showWardRound(pod) {
   var lastCRP  = labResults.length ? labResults[labResults.length-1].crp : null;
   var prevCRP  = labResults.length > 1 ? labResults[labResults.length-2].crp : null;
   var podNum   = parseInt((pod||'').replace(/[^0-9]/g,'')) || 0;
+
+  // ── Sync ERAS tracker today's date to match selected POD ──
+  var surgEl  = document.getElementById('eras-surg-date');
+  var todayEl = document.getElementById('eras-today-date');
+  if (surgEl && surgEl.value && todayEl) {
+    var surgDate = new Date(surgEl.value);
+    surgDate.setDate(surgDate.getDate() + podNum);
+    todayEl.value = surgDate.toISOString().split('T')[0];
+    renderErasTracker();
+  }
 
   // ── Read live state from panels below ──────────────────
   var cathRemoved  = !!document.querySelector('#cath-grp .sel-g');          // ✅ Removed
