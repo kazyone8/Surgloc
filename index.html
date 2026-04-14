@@ -1779,7 +1779,7 @@ function checkAbxStewardship() {
   var running   = !!document.querySelector('#abx-status-grp .sel-r');
   var none      = !!document.querySelector('#abx-status-grp .sel-g');
   var oral      = !!document.querySelector('#abx-status-grp .sel-t');
-  var podNum    = parseInt(pod) || 0;
+  var podNum    = parseInt((pod||'').replace(/[^0-9]/g,'')) || 0;
   var f         = document.getElementById('abx-flag');
   var srcBlock  = document.getElementById('abx-source-block');
   if (!f) return;
@@ -3616,7 +3616,7 @@ function addDietLog() {
 
   // Auto-resolve ERAS milestones from diet log
   if (!window.erasAchieved) window.erasAchieved = {};
-  var podNum = parseInt(entry.pod) || 0;
+  var podNum = parseInt((entry.pod||'').replace(/[^0-9]/g,'')) || 0;
   if (stage >= 1 && !window.erasAchieved['ms-fluids']) {
     window.erasAchieved['ms-fluids'] = true;
     window.erasAchieved['ms-fluids_pod'] = podNum;
@@ -3710,7 +3710,7 @@ function dietSmartPrompt() {
   if (!dietLog.length) { f.innerHTML = ''; return; }
 
   var last    = dietLog[dietLog.length - 1];
-  var podNum  = parseInt(last.pod) || 0;
+  var podNum  = parseInt((last.pod||'').replace(/[^0-9]/g,'')) || 0;
   var stage   = last.stage;
   var isBack  = last.action && last.action.indexOf('\u2193') > -1;
 
@@ -3967,7 +3967,7 @@ function showWardRound(pod) {
 
   var lastCRP  = labResults.length ? labResults[labResults.length-1].crp : null;
   var prevCRP  = labResults.length > 1 ? labResults[labResults.length-2].crp : null;
-  var podNum   = parseInt(pod) || 0;
+  var podNum   = parseInt((pod||'').replace(/[^0-9]/g,'')) || 0;
 
   // ── Read live state from panels below ──────────────────
   var cathRemoved  = !!document.querySelector('#cath-grp .sel-g');          // ✅ Removed
