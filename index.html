@@ -1062,6 +1062,19 @@ function restoreMod(mod) {
   document.querySelectorAll('#mod-body .opt').forEach(function(el, i) {
     if (data['_opt_' + i]) el.className = data['_opt_' + i];
   });
+
+  // Restore postop log arrays
+  if (mod === 'postop') {
+    if (data['_lab_results'])  { labResults = data['_lab_results'];  renderLabResults(); checkCRPTrend(); }
+    if (data['_diet_log'])     { dietLog = data['_diet_log']; dietStage = dietLog[dietLog.length-1].stage; renderDietTimeline(); dietSmartPrompt(); }
+    if (data['_mob_log'])      { mobLog = data['_mob_log'];   renderMobLog(); }
+    if (data['_stoma_log'])    { stomaLog = data['_stoma_log']; renderStomaLog(); analyseStomaOutput(); }
+    if (data['_pain_log'])     { painLog = data['_pain_log']; renderPainLog(); }
+    if (data['_wound_log'])    { woundLog = data['_wound_log']; }
+    // Restore erasAchieved
+    if (!window.erasAchieved) window.erasAchieved = {};
+    setTimeout(function() { renderErasTracker(); refreshWardRound(); }, 100);
+  }
 }
 
 // ═══════════════════════════════════════
@@ -3401,6 +3414,7 @@ function startPostop() {
 function initPostop() {
   labResults = []; painLog = []; problems = []; dietSetbacks = []; dietLog = []; stomaLog = []; mobLog = []; woundLog = [];
   dietStage = -1;
+  dietStage = -1;
   dcDone = new Array(14).fill(false);
 }
 
@@ -5056,18 +5070,28 @@ function doAutosave() {
       var lastLab = labResults[labResults.length-1];
       if (lastLab.crp) data['_last_crp'] = lastLab.crp;
       if (lastLab.hb)  data['_last_hb']  = lastLab.hb;
+      data['_lab_results'] = labResults;
     }
     if (dietStage >= 0) data['_diet_stage'] = dietStage;
     if (dietLog.length) data['_diet_log'] = dietLog;
     if (dietLog.length > 1) {
-      // Flag if last entry was a stepback
       var lastDiet = dietLog[dietLog.length-1];
       var prevDiet = dietLog[dietLog.length-2];
       if (lastDiet.stage < prevDiet.stage) data['_setback_count'] = (parseInt(data['_setback_count']||0) + 1);
     }
-    if (painLog.length) data['_last_nrs'] = painLog[painLog.length-1].nrs;
-    var cathRemoved = document.querySelector('#cath-grp .sel-g');
-    if (cathRemoved) data['_cath_removed'] = true;
+    if (mobLog.length)   data['_mob_log']   = mobLog;
+    if (stomaLog.length) data['_stoma_log'] = stomaLog;
+    if (painLog.length) {
+      data['_last_nrs'] = painLog[painLog.length-1].nrs;
+      data['_pain_log'] = painLog;
+    }
+    if (woundLog.length) data['_wound_log'] = woundLog;
+    var cathSel = document.querySelector('#cath-grp .opt.sel-g, #cath-grp .opt.sel-r, #cath-grp .opt.sel');
+    if (cathSel) data['_cath_sel'] = cathSel.textContent.trim();
+    var clexSel = document.querySelector('#clex-grp .opt.sel-g, #clex-grp .opt.sel-r, #clex-grp .opt.sel-a');
+    if (clexSel) data['_clex_sel'] = clexSel.textContent.trim();
+    var abxSel = document.querySelector('#abx-status-grp .opt.sel-g, #abx-status-grp .opt.sel-r, #abx-status-grp .opt.sel-t');
+    if (abxSel) data['_abx_sel'] = abxSel.textContent.trim();
   }
   saveState();
   showAutosaveStatus('saved');
