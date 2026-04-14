@@ -723,14 +723,14 @@ function caseCardHTML(c) {
     '</div>' +
     '<div style="display:flex;gap:7px;align-items:center;flex-shrink:0;">' +
       '<span class="sb-badge sb-' + c.status + '">' + statusLabel + '</span>' +
-      (isConsultant() ? '<button onclick="event.stopPropagation();archiveCase(\'' + c.id + '\')" title="Archive case" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--bd2);background:var(--sf);color:var(--hint);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;" onmouseover="this.style.borderColor=\'var(--red-b)\';this.style.color=\'var(--red)\';this.style.background=\'var(--red-l)\'" onmouseout="this.style.borderColor=\'var(--bd2)\';this.style.color=\'var(--hint)\';this.style.background=\'var(--sf)\'">\ud83d\uddd1</button>' : '') +
+      (isConsultant() && (function(){ var ou = USERS.find(function(u){ return u.name===c.surgeon||u.id===c.surgeon; }); return !ou || ou.id===curUser.id; })() ? '<button onclick="event.stopPropagation();archiveCase(\'' + c.id + '\')" title="Archive case" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--bd2);background:var(--sf);color:var(--hint);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;" onmouseover="this.style.borderColor=\'var(--red-b)\';this.style.color=\'var(--red)\';this.style.background=\'var(--red-l)\'" onmouseout="this.style.borderColor=\'var(--bd2)\';this.style.color=\'var(--hint)\';this.style.background=\'var(--sf)\'">\ud83d\uddd1</button>' : '') +
     '</div>' +
   '</div>';
 }
 
 // ═══ ARCHIVE / RESTORE ═══
 function archiveCase(id) {
-  if (!enforceDeleteAuth()) return;
+  if (!enforceDeleteAuth(id)) return;
   var c = cases.find(function(x) { return x.id === id; });
   if (!c) return;
   c.deleted = true;
@@ -1882,17 +1882,28 @@ var ROLE_HO         = ['ho'];
 
 function isConsultant() { return ROLE_CONSULTANT.indexOf(curUser.id) > -1; }
 function isRegistrarPlus() { return isConsultant() || ROLE_REGISTRAR.indexOf(curUser.id) > -1; }
+function isCaseOwner() {
+  if (!curCase) return false;
+  // Match by surgeon name or id
+  var ownerName = curCase.surgeon || '';
+  var ownerUser = USERS.find(function(u) { return u.name === ownerName || u.id === ownerName; });
+  if (!ownerUser) return isConsultant(); // unassigned case — any consultant can edit
+  return ownerUser.id === curUser.id;
+}
 
-// Returns 'edit', 'readonly', or 'locked' for a given module
+// Returns 'edit' or 'readonly' for a given module
 function modAccess(mod) {
-  if (isConsultant()) return 'edit';
+  // Consultant — full edit only on their OWN cases
+  if (isConsultant()) {
+    return isCaseOwner() ? 'edit' : 'readonly';
+  }
+  // Registrar / MO — edit across all cases except surgery
   if (ROLE_REGISTRAR.indexOf(curUser.id) > -1) {
-    // Reg / MO: read-only on surgery
     if (mod === 'surgery') return 'readonly';
     return 'edit';
   }
+  // HO — edit presentation + postop across all cases
   if (ROLE_HO.indexOf(curUser.id) > -1) {
-    // HO: edit presentation + postop only
     if (mod === 'presentation' || mod === 'postop') return 'edit';
     return 'readonly';
   }
@@ -1922,7 +1933,14 @@ function enforceReadOnly(mod) {
   var banner = document.createElement('div');
   banner.id = 'readonly-banner';
   banner.style.cssText = 'position:sticky;top:0;z-index:20;padding:8px 14px;background:var(--amber-l);border-bottom:1px solid var(--amber-b);display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--amber);';
-  banner.innerHTML = '\ud83d\udd12 Read only \u2014 ' + curUser.ini + ' does not have edit access to this module. Contact a consultant or registrar.';
+  var msg = '\ud83d\udd12 Read only \u2014 ';
+  if (isConsultant() && !isCaseOwner()) {
+    var ownerName = (curCase && curCase.surgeon) ? curCase.surgeon : 'another consultant';
+    msg += 'This case belongs to ' + ownerName + '. Only they can edit it.';
+  } else {
+    msg += curUser.ini + ' does not have edit access to this module.';
+  }
+  banner.innerHTML = msg;
   body.insertBefore(banner, body.firstChild);
   // Hide save button
   var saveBtn = document.querySelector('.mod-tb .btn-p');
@@ -1937,10 +1955,18 @@ function enforceNewCaseAuth() {
   return true;
 }
 
-function enforceDeleteAuth() {
+function enforceDeleteAuth(caseId) {
   if (!isConsultant()) {
     toast('\ud83d\udd12 Only consultants can delete cases');
     return false;
+  }
+  var c = cases.find(function(x) { return x.id === caseId; });
+  if (c) {
+    var ownerUser = USERS.find(function(u) { return u.name === c.surgeon || u.id === c.surgeon; });
+    if (ownerUser && ownerUser.id !== curUser.id) {
+      toast('\ud83d\udd12 Only ' + c.surgeon + ' can delete this case');
+      return false;
+    }
   }
   return true;
 }
