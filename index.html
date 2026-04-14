@@ -559,6 +559,22 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0);cursor:poin
   </div>
 </div>
 
+<!-- PATIENT REGISTRY MODAL -->
+<div class="mo" id="mo-registry" style="display:none;">
+  <div class="mo-box" style="max-width:480px;">
+    <div class="mo-title">\ud83d\udd12 Patient ID Registry</div>
+    <div class="mo-sub">Link case IDs to patient initials — for your eyes only. <b>Never synced. Never leaves this device.</b></div>
+    <div style="margin:10px 0;padding:8px 10px;background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--rs);font-size:11.5px;color:var(--amber);">
+      \u26a0\ufe0f This data is stored only in your browser on this device. Do not enter real patient data on shared devices.
+    </div>
+    <div id="registry-list" style="max-height:340px;overflow-y:auto;margin-bottom:10px;"></div>
+    <div class="mo-actions">
+      <button class="btn" onclick="closeMo('mo-registry')" style="flex:1;">Close</button>
+      <button class="btn btn-p" onclick="exportRegistryCSV()" style="flex:1;">\u2b07\ufe0f Download CSV</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="tst"></div>
 
 <script>
@@ -5157,6 +5173,94 @@ function checkBowelFunction() {
   }
 }
 
+// ── PATIENT REGISTRY (private, local only, never synced) ──
+function downloadPatientRegistry() {
+  if (!isConsultant()) { toast('\ud83d\udd12 Consultants only'); return; }
+  var active = cases.filter(function(c) { return !c.deleted; });
+  if (!active.length) { toast('No cases to show'); return; }
+
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem('surglog_registry') || '{}'); } catch(e) {}
+
+  var el = document.getElementById('registry-list');
+  el.innerHTML = active.map(function(c) {
+    var reg = saved[c.id] || {};
+    var hasSaved = !!reg.initials;
+    return '<div id="reg-row-' + c.id + '" style="display:grid;grid-template-columns:90px 1fr 32px;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd);">' +
+      '<div style="font-size:11.5px;font-weight:800;font-family:var(--mono);color:' + c.color + ';">' + c.id + '</div>' +
+      (hasSaved
+        ? '<div style="font-size:12px;color:var(--green);font-weight:600;">\u2705 Saved</div>'
+        : '<input type="text" placeholder="Patient initials (e.g. TAK)" id="reg-init-' + c.id + '" maxlength="6" style="font-size:12px;padding:5px 8px;text-transform:uppercase;">'
+      ) +
+      '<button onclick="saveRegistryEntry(\'' + c.id + '\')" title="Save" style="padding:4px;border-radius:6px;border:1px solid var(--green-b);background:var(--green-l);color:var(--green);font-size:13px;cursor:pointer;' + (hasSaved?'display:none;':'') + '">\u2713</button>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('mo-registry').style.display = 'flex';
+}
+
+function saveRegistryEntry(caseId) {
+  var initEl = document.getElementById('reg-init-' + caseId);
+  if (!initEl) return;
+  var initials = initEl.value.trim().toUpperCase();
+  if (!initials) { toast('Enter patient initials first'); return; }
+
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem('surglog_registry') || '{}'); } catch(e) {}
+  saved[caseId] = { initials: initials };
+  localStorage.setItem('surglog_registry', JSON.stringify(saved));
+
+  // Replace row with saved indicator
+  var row = document.getElementById('reg-row-' + caseId);
+  if (row) {
+    var c = cases.find(function(x) { return x.id === caseId; });
+    row.innerHTML =
+      '<div style="font-size:11.5px;font-weight:800;font-family:var(--mono);color:' + (c?c.color:'var(--blue)') + ';">' + caseId + '</div>' +
+      '<div style="font-size:12px;color:var(--green);font-weight:600;">\u2705 Saved</div>' +
+      '<div></div>';
+  }
+  toast('\u2705 ' + caseId + ' initials saved');
+}
+
+function exportRegistryCSV() {
+  // Only WKY can export
+  if (curUser.id !== 'wky') {
+    toast('\ud83d\udd12 Only Dr WKY can export the patient registry');
+    return;
+  }
+  // Password prompt
+  var pwd = prompt('Enter export password to download identifiable file:');
+  if (!pwd) return;
+  if (pwd !== 'WKY2026') {
+    toast('\u274c Incorrect password');
+    return;
+  }
+
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem('surglog_registry') || '{}'); } catch(e) {}
+  var active = cases.filter(function(c) { return !c.deleted; });
+
+  var rows = [['Case ID','Procedure','Consultant','Patient Initials','Surgery Date','Status']];
+  active.forEach(function(c) {
+    var reg = saved[c.id] || {};
+    var sgDate = (c.data && c.data.surgery && c.data.surgery['sg-date']) || '';
+    rows.push([c.id, c.procLabel, c.surgeon||'', reg.initials||'', sgDate, c.status||'']);
+  });
+
+  var csv = rows.map(function(r) {
+    return r.map(function(v) { return '"' + String(v).replace(/"/g,'""') + '"'; }).join(',');
+  }).join('\n');
+
+  var blob = new Blob([csv], {type:'text/csv'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.download = 'SurgLog_PatientRegistry_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('\u2705 Registry downloaded');
+}
+
 function closeMo(id) { document.getElementById(id).style.display = 'none'; }
 function toggleSb() {
   document.getElementById('sb').classList.toggle('open');
@@ -5718,7 +5822,8 @@ function addSyncButtons() {
   tb.innerHTML =
     '<button class="btn" onclick="openImportModal()" style="font-size:11px;padding:5px 10px;">\u2b07\ufe0f Import</button>' +
     '<button class="btn btn-p" onclick="openExportModal(\'full\')" style="font-size:11px;padding:5px 10px;">\ud83d\udce4 Sync all</button>' +
-    '<button class="btn" onclick="openExportModal(\'single\')" style="font-size:11px;padding:5px 10px;border-color:var(--teal-b);color:var(--teal);">\ud83d\udcc4 This case</button>';
+    '<button class="btn" onclick="openExportModal(\'single\')" style="font-size:11px;padding:5px 10px;border-color:var(--teal-b);color:var(--teal);">\ud83d\udcc4 This case</button>' +
+    (isConsultant() ? '<button class="btn" onclick="downloadPatientRegistry()" style="font-size:11px;padding:5px 10px;border-color:var(--purple,#7c3aed);color:var(--purple,#7c3aed);" title="Download case ID to patient name lookup (private — never synced)">\ud83d\udd12 ID Registry</button>' : '');
 }
 
 // ── INIT ──
