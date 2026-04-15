@@ -3810,15 +3810,81 @@ function renderLabResults() {
 function checkCRPTrend() {
   var data = labResults.filter(function(r) { return r.crp !== null; });
   var f = document.getElementById('crp-flag');
-  if (!f || data.length < 2) return;
-  var last = data[data.length-1].crp, prev = data[data.length-2].crp;
-  if (last > prev && last > 150) {
-    f.innerHTML = flag('r','\ud83d\udea8','Rising CRP \u2014 anastomotic leak risk','CRP ' + prev + ' \u2192 ' + last + ' mg/L. Consider CT abdomen/pelvis urgently. Escalate to senior now.');
-  } else if (last > prev) {
-    f.innerHTML = flag('a','\u26a0\ufe0f','CRP rising \u2014 monitor closely',prev + ' \u2192 ' + last + ' mg/L. Repeat tomorrow. Escalate if fever or clinical deterioration develops.');
+  if (!f || !data.length) return;
+
+  var last    = data[data.length-1];
+  var prev    = data.length >= 2 ? data[data.length-2] : null;
+  var lastCRP = last.crp;
+  var prevCRP = prev ? prev.crp : null;
+  var podNum  = parseInt((last.pod||'').replace(/[^0-9]/g,'')) || 0;
+
+  var html = '';
+
+  // POD 3+ with CRP >150 — key leak decision point
+  if (podNum >= 3 && lastCRP > 150) {
+    var rising = prevCRP && lastCRP > prevCRP;
+    var notFalling = prevCRP && lastCRP >= prevCRP * 0.9; // less than 10% drop = not falling
+    if (rising || notFalling) {
+      html = '<div style="padding:12px;border-radius:var(--r);border:2px solid var(--red);background:var(--red-l);margin-bottom:8px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+          '<span style="font-size:18px;">\ud83d\udea8</span>' +
+          '<div>' +
+            '<div style="font-size:13px;font-weight:800;color:var(--red);">CRP ' + (prevCRP ? prevCRP + ' \u2192 ' : '') + lastCRP + ' mg/L on ' + last.pod + ' \u2014 not falling</div>' +
+            '<div style="font-size:11.5px;color:var(--red);margin-top:2px;">Suspect anastomotic complication until proven otherwise</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.9;">' +
+          '<b>Action:</b><br>' +
+          '1\ufe0f\u20e3 Assess clinically \u2014 fever, tachycardia, peritonism, drain character<br>' +
+          '2\ufe0f\u20e3 Alert consultant immediately<br>' +
+          '3\ufe0f\u20e3 If clinically well \u2014 repeat bloods tomorrow and reassess<br>' +
+          '4\ufe0f\u20e3 If any clinical concern \u2014 CT abdomen/pelvis with IV contrast urgently' +
+        '</div>' +
+        '<button onclick="suspectLeak()" style="width:100%;padding:10px;border-radius:var(--rs);border:2px solid var(--red);background:var(--red);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);">' +
+          '\ud83d\udea8 Suspect complication \u2014 activate leak protocol' +
+        '</button>' +
+      '</div>';
+    } else {
+      html = flag('a','\u26a0\ufe0f','CRP ' + lastCRP + ' mg/L on ' + last.pod + ' \u2014 review carefully',
+        (prevCRP ? 'Trend: ' + prevCRP + ' \u2192 ' + lastCRP + ' mg/L. ' : '') +
+        'CRP >150 on POD 3+ requires clinical correlation. If not clearly falling — escalate. Assess for fever, tachycardia, peritonism.');
+    }
+  } else if (prevCRP && lastCRP > prevCRP && lastCRP > 150) {
+    // Rising >150 on any POD
+    html = flag('r','\ud83d\udea8','Rising CRP \u2014 suspect anastomotic complication',
+      'CRP ' + prevCRP + ' \u2192 ' + lastCRP + ' mg/L. Assess clinically. Alert consultant. If well \u2014 repeat bloods tomorrow.') +
+      '<button onclick="suspectLeak()" style="width:100%;padding:9px;border-radius:var(--rs);border:2px solid var(--red);background:var(--red);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer;font-family:var(--font);margin-top:6px;">' +
+        '\ud83d\udea8 Suspect complication \u2014 activate leak protocol' +
+      '</button>';
+  } else if (prevCRP && lastCRP > prevCRP) {
+    html = flag('a','\u26a0\ufe0f','CRP rising \u2014 monitor closely',
+      prevCRP + ' \u2192 ' + lastCRP + ' mg/L. Repeat tomorrow. Escalate if fever or clinical deterioration.');
+  } else if (prevCRP) {
+    html = flag('g','\u2705','CRP improving',
+      prevCRP + ' \u2192 ' + lastCRP + ' mg/L. Normal post-operative trajectory.');
   } else {
-    f.innerHTML = flag('g','\u2705','CRP improving',prev + ' \u2192 ' + last + ' mg/L. Normal post-operative trajectory.');
+    // Single reading
+    if (podNum >= 3 && lastCRP > 150) {
+      html = flag('a','\u26a0\ufe0f','CRP ' + lastCRP + ' mg/L on ' + last.pod + ' \u2014 needs context',
+        'Single reading. Enter previous CRP to assess trend. If CRP >150 on POD 3+ and not clearly falling — assess clinically and escalate.');
+    } else {
+      html = flag('b','\u2139\ufe0f','CRP ' + lastCRP + ' mg/L \u2014 enter next reading to assess trend','Add daily results to track CRP trajectory.');
+    }
   }
+
+  f.innerHTML = html;
+}
+
+function suspectLeak() {
+  // Scroll to leak protocol card and highlight it
+  var leakCard = document.getElementById('leak-card');
+  if (leakCard) {
+    leakCard.scrollIntoView({behavior:'smooth', block:'center'});
+    leakCard.style.boxShadow = '0 0 0 3px var(--red)';
+    leakCard.style.transition = 'box-shadow .3s';
+    setTimeout(function() { leakCard.style.boxShadow = ''; }, 3000);
+  }
+  toast('\ud83d\udea8 Leak protocol activated \u2014 complete checklist below');
 }
 
 function buildDietStage(i, icon, label, detail) {
