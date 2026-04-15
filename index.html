@@ -630,6 +630,7 @@ let evts = [];
 let labResults = [], painLog = [], problems = [];
 let dietStage = -1;
 let dcDone = [];
+var dcItems = []; // discharge checklist items — set in buildPostop, read by updateDCBanner/dischargePt
 let erasDone = [];
 
 function loadState() {
@@ -2908,7 +2909,7 @@ function buildPostop() {
     dcItemsBase.push(['Histology pending \u2014 ensure outpatient MDT follow-up plan documented', false]);
   }
 
-  var dcItems = dcItemsBase;
+  dcItems = dcItemsBase;
   dcDone = new Array(dcItems.length).fill(false);
 
   return '<div class="two-col"><div>' +
@@ -4671,7 +4672,11 @@ function renderProblems() {
 }
 
 function updateDCBanner() {
-  var critIdx = [0,1,2,3,4,5,6,10,11];
+  // Derive required indices dynamically from current dcItems
+  var critIdx = [];
+  if (typeof dcItems !== 'undefined') {
+    dcItems.forEach(function(it, i) { if (it[1]) critIdx.push(i); });
+  }
   var critMiss = critIdx.filter(function(i) { return !dcDone[i]; }).length;
   var banner = document.getElementById('dc-readiness');
   if (!banner) return;
@@ -4688,7 +4693,10 @@ function onDcDate(val) {
 }
 
 function dischargePt() {
-  var critIdx = [0,1,2,3,4,5,6,10,11];
+  var critIdx = [];
+  if (typeof dcItems !== 'undefined') {
+    dcItems.forEach(function(it, i) { if (it[1]) critIdx.push(i); });
+  }
   var critMiss = critIdx.filter(function(i) { return !dcDone[i]; }).length;
   if (critMiss > 0) { toast('\u26a0 ' + critMiss + ' required discharge items not completed'); return; }
   if (curCase) { curCase.status = 'complete'; saveState(); }
