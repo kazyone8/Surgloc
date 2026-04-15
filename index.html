@@ -1045,6 +1045,10 @@ function saveCurrentMod() {
     var si = document.getElementById('dx-site'); var tn = document.getElementById('tnm-display');
     if (si && si.value) curCase.site = si.value;
     if (tn && tn.textContent && tn.textContent !== 'Select T, N and M above') curCase.tnm = tn.textContent;
+    // Save TNM button selections
+    document.querySelectorAll('#mod-body .tnm-btn').forEach(function(b, i) {
+      data['_tnm_' + i] = b.classList.contains('sel');
+    });
   }
   if (curMod === 'mdt') {
     // Store neoadjuvant decision on case for restaging gating
@@ -1085,6 +1089,16 @@ function restoreMod(mod) {
   document.querySelectorAll('#mod-body .opt').forEach(function(el, i) {
     if (data['_opt_' + i]) el.className = data['_opt_' + i];
   });
+
+  // Restore tnm-btn selections for diagnosis and surgery
+  if (mod === 'diagnosis' || mod === 'surgery') {
+    setTimeout(function() {
+      document.querySelectorAll('#mod-body .tnm-btn').forEach(function(b, i) {
+        if (data['_tnm_' + i]) b.classList.add('sel');
+        else b.classList.remove('sel');
+      });
+    }, 50);
+  }
 
   // Restore surgery events log
   if (mod === 'surgery') {
@@ -5468,6 +5482,13 @@ function doAutosave() {
   }
   if (curMod === 'surgery') {
     if (evts && evts.length) data['_evts'] = evts;
+    // Save difficulty button selection (tnm-btn class not captured by generic opt save)
+    var diffBtn = document.querySelector('#mod-body .tnm-btn.sel');
+    if (diffBtn) data['_sg_diff'] = diffBtn.textContent.trim().charAt(0);
+    // Save all tnm-btn states by index
+    document.querySelectorAll('#mod-body .tnm-btn').forEach(function(b, i) {
+      data['_tnm_' + i] = b.classList.contains('sel');
+    });
   }
   if (curMod === 'postop') {
     if (labResults.length) {
