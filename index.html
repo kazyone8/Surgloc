@@ -2794,6 +2794,13 @@ function buildSurgery() {
   return '<div class="two-col"><div>' +
     '<div class="card"><div class="ch" onclick="tc(this)"><div class="ctg"><div class="ci ci-b">\ud83c\udfe5</div><div><div class="ct">OR setup & team</div><div class="cs">Date, times, approach, surgeons</div></div></div><div class="cv open">\u25be</div></div>' +
     '<div class="cb">' +
+      '<div class="fg" style="margin-bottom:10px;"><label>Surgical setting</label>' +
+        '<div class="og" id="sg-setting-grp" style="margin-top:4px;">' +
+          optBtn('Elective','sg-setting-grp','sel-g') +
+          optBtn('Emergency','sg-setting-grp','sel-r') +
+          optBtn('Elective in emergency OT','sg-setting-grp','sel-a') +
+        '</div>' +
+      '</div>' +
       '<div class="fr" style="grid-template-columns:1fr 1fr 1fr;">' +
         '<div class="fg"><label>Surgery date <span class="req">*</span></label><input type="date" id="sg-date" onchange="onSurgDate(this.value)"></div>' +
         '<div class="fg"><label>OR start time</label><input type="time" id="sg-start" onchange="calcOpTime()"></div>' +
