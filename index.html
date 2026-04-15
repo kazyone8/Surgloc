@@ -1086,6 +1086,11 @@ function restoreMod(mod) {
     if (data['_opt_' + i]) el.className = data['_opt_' + i];
   });
 
+  // Restore surgery events log
+  if (mod === 'surgery') {
+    if (data['_evts']) { evts = data['_evts']; }
+  }
+
   // Restore postop log arrays
   if (mod === 'postop') {
     if (data['_lab_results'])  { labResults = data['_lab_results'];  renderLabResults(); checkCRPTrend(); }
@@ -5460,6 +5465,9 @@ function doAutosave() {
     curCase.preMdtDone = !!(preMdtDate && preMdtDate.value);
     var histoEl = document.getElementById('mdt-histo-status');
     if (histoEl) curCase.histoAvailable = histoEl.value === 'available';
+  }
+  if (curMod === 'surgery') {
+    if (evts && evts.length) data['_evts'] = evts;
   }
   if (curMod === 'postop') {
     if (labResults.length) {
