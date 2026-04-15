@@ -5587,16 +5587,40 @@ function openExportModal(mode) {
   setTimeout(function() { generateQR(code); }, 100);
 }
 
+function shareViaAirdrop() {
+  var code = document.getElementById('sync-export-code') ? document.getElementById('sync-export-code').value : '';
+  if (!code) { toast('Generate a sync code first'); return; }
+
+  // Web Share API — triggers native iOS share sheet (AirDrop, Messages, etc.)
+  if (navigator.share) {
+    navigator.share({
+      title: 'SurgLog Sync Code',
+      text: code
+    }).then(function() {
+      toast('\u2705 Shared successfully');
+    }).catch(function() {
+      // User cancelled — no error needed
+    });
+  } else {
+    // Fallback for non-iOS — copy to clipboard
+    navigator.clipboard.writeText(code).then(function() {
+      toast('\ud83d\udccb Code copied — AirDrop not available on this device');
+    }).catch(function() {
+      toast('Copy the code manually from the box above');
+    });
+  }
+}
+
 function copyExportCode() {
   var el = document.getElementById('sync-export-code');
   el.select();
   try {
     navigator.clipboard.writeText(el.value).then(function() {
-      toast('\u2705 Code copied — paste into Teams');
+      toast('\u2705 Code copied — paste into SurgLog import');
     });
   } catch(e) {
     document.execCommand('copy');
-    toast('\u2705 Copied — paste into Teams');
+    toast('\u2705 Copied — paste into SurgLog import');
   }
 }
 
@@ -5712,7 +5736,7 @@ function previewImport() {
 
   var match = raw.match(/[Ss][Ll][23]:[A-Za-z0-9+\/=]+/);
   if (!match) {
-    preview.innerHTML = '<div class="flag flag-r" style="margin-top:8px;"><div class="fi">\u274c</div><div class="fb"><div class="ft">Not a valid SurgLog code</div><p>Make sure you copied the full SL2: or SL3: code from Teams.</p></div></div>';
+    preview.innerHTML = '<div class="flag flag-r" style="margin-top:8px;"><div class="fi">\u274c</div><div class="fb"><div class="ft">Not a valid SurgLog code</div><p>Make sure you copied the full SL2: or SL3: code.</p></div></div>';
     btn.disabled = true;
     return;
   }
@@ -5871,7 +5895,7 @@ setTimeout(openUserModal, 300);
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
       <button class="btn btn-p" onclick="copyExportCode()" style="width:100%;padding:11px;font-size:13px;">📋 Copy code</button>
-      <button class="btn" onclick="shareToTeams()" style="width:100%;padding:11px;font-size:13px;border-color:var(--purple-b);color:var(--purple);">💬 Share to Teams</button>
+      <button class="btn" onclick="shareViaAirdrop()" style="width:100%;padding:11px;font-size:13px;margin-top:8px;border-color:var(--blue-b);color:var(--blue);">📤 AirDrop / Share</button>
     </div>
     <div class="mo-actions"><button class="btn" onclick="closeMo('mo-sync-export')" style="flex:1;">Done</button></div>
   </div>
