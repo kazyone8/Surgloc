@@ -1018,6 +1018,13 @@ function loadMod(mod) {
   if (mod === 'preop')        initPreop();
   if (mod === 'surgery')      initSurgery();
   if (mod === 'postop')       initPostop();
+  // Re-apply tnm-btn selections AFTER init (init may have cleared them)
+  if (mod === 'diagnosis' || mod === 'surgery') {
+    var savedData = (curCase && curCase.data && curCase.data[mod]) || {};
+    document.querySelectorAll('#mod-body .tnm-btn').forEach(function(b, i) {
+      if (savedData['_tnm_' + i]) b.classList.add('sel');
+    });
+  }
   // Attach autosave to the freshly rendered module
   setTimeout(setupAutosave, 100);
   // Enforce read-only access after render + restore
@@ -1090,14 +1097,16 @@ function restoreMod(mod) {
     if (data['_opt_' + i]) el.className = data['_opt_' + i];
   });
 
-  // Restore tnm-btn selections for diagnosis and surgery
+  // Restore tnm-btn selections for diagnosis and surgery — must run after HTML is rendered
   if (mod === 'diagnosis' || mod === 'surgery') {
     setTimeout(function() {
-      document.querySelectorAll('#mod-body .tnm-btn').forEach(function(b, i) {
+      var btns = document.querySelectorAll('#mod-body .tnm-btn');
+      if (!btns.length) return; // not rendered yet
+      btns.forEach(function(b, i) {
         if (data['_tnm_' + i]) b.classList.add('sel');
         else b.classList.remove('sel');
       });
-    }, 50);
+    }, 200); // longer delay to ensure buildSurgery/initSurgery have both completed
   }
 
   // Restore surgery events log
