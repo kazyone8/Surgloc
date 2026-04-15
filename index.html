@@ -317,7 +317,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0);cursor:poin
   .page { display:block !important; padding:0 !important; }
   body { background:#fff !important; color:#000 !important; }
   .ho-card { break-inside:avoid; page-break-inside:avoid; border:1px solid #ccc !important; }
+  #float-home { display:none !important; }
 }
+#float-home{position:fixed;bottom:28px;right:22px;z-index:45;width:46px;height:46px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:19px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;transition:all .2s;}
+#float-home:hover{transform:scale(1.1);}
+@media(max-width:768px){#float-home{display:none;}}
 ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--hint);border-radius:3px;}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:rgba(255,255,255,.96);color:var(--text);padding:8px 18px;border-radius:30px;font-size:12px;font-weight:500;z-index:999;transition:transform .3s ease;pointer-events:none;border:1px solid var(--bd2);backdrop-filter:blur(12px);white-space:nowrap;}
 .sec-nav{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px;}
@@ -6039,5 +6043,6 @@ setTimeout(openUserModal, 300);
   </button>
 </div>
 
+<button id="float-home" onclick="go('dash')" title="Back to home">\ud83c\udfe0</button>
 </body>
 </html>
