@@ -823,7 +823,7 @@ function openCase(id) {
   // Reset module runtime state
   curMod = null;
   tnmState = {T:'', N:'', M:''};
-  evts = []; labResults = []; painLog = []; problems = [];
+  evts = []; labResults = []; painLog = []; problems = []; clexLog = [];
   dietStage = -1; dcDone = []; erasDone = [];
   // Unlock patient nav items
   ['ni-journey','ni-s1','ni-s2','ni-s-mdt','ni-s3','ni-s4','ni-s5'].forEach(function(id) {
@@ -1119,6 +1119,7 @@ function restoreMod(mod) {
     if (data['_lab_results'])  { labResults = data['_lab_results'];  renderLabResults(); checkCRPTrend(); }
     if (data['_diet_log'])     { dietLog = data['_diet_log']; dietStage = dietLog[dietLog.length-1].stage; renderDietTimeline(); dietSmartPrompt(); }
     if (data['_mob_log'])      { mobLog = data['_mob_log'];   renderMobLog(); }
+    if (data['_clex_log'])     { clexLog = data['_clex_log']; renderClexLog(); }
     if (data['_stoma_log'])    { stomaLog = data['_stoma_log']; renderStomaLog(); analyseStomaOutput(); }
     if (data['_pain_log'])     { painLog = data['_pain_log']; renderPainLog(); }
     if (data['_wound_log'])    { woundLog = data['_wound_log']; }
@@ -3161,7 +3162,21 @@ function buildPostop() {
           optBtn('No \u2014 output normal','loperamide-grp','sel-g') +
           optBtn('Yes \u2014 prescribed','loperamide-grp','sel-r') +
         '</div></div>' +
-        '<div class="fg"><label>Dose prescribed</label><select id="loperamide-dose"><option value="">N/A</option><option>Loperamide 2mg BD</option><option>Loperamide 2mg TDS</option><option>Loperamide 2mg QID</option><option>Loperamide 4mg QID (max)</option></select></div>' +
+        '<div class="fg"><label>Dose prescribed</label><select id="loperamide-dose"><option value="">N/A</option><option>Loperamide 4mg (2 tabs) OM</option><option>Loperamide 2mg BD</option><option>Loperamide 2mg TDS</option><option>Loperamide 2mg QID</option><option>Loperamide 4mg QID (max)</option></select></div>' +
+        '<div id="loperamide-reason-block" style="display:none;margin-top:6px;">' +
+          '<div class="fg fr1"><label>Reason loperamide not started</label>' +
+            '<select id="loperamide-not-reason" style="margin-bottom:6px;">' +
+              '<option value="">Select reason</option>' +
+              '<option>Consistency turning solid \u2014 output self-limiting</option>' +
+              '<option>Recovering from ileus \u2014 bowel restarting</option>' +
+              '<option>Output improving trend \u2014 observe</option>' +
+              '<option>Patient on bowel prep / laxatives</option>' +
+              '<option>Contraindicated \u2014 obstruction suspected</option>' +
+              '<option>Senior decision \u2014 see notes</option>' +
+            '</select>' +
+            '<input type="text" id="loperamide-not-notes" placeholder="Additional notes...">' +
+          '</div>' +
+        '</div>' +
       '</div>' +
       '<div id="loperamide-flag"></div>' +
       '<button class="btn btn-p" onclick="addStomaEntry()" style="width:100%;margin-top:10px;">+ Log stoma entry</button>' +
@@ -3288,13 +3303,36 @@ function buildPostop() {
       '</div>' +
       '<div class="fg fr1"><label>Catheter retention reason</label><input type="text" id="cath-reason" placeholder="e.g. Pelvic nerve risk post-APR. Plan: TWOC POD 3."></div>' +
       '<div class="div"></div>' +
-      '<div class="fr">' +
-        '<div class="fg"><label>Clexane status</label><div class="og" id="clex-grp" style="margin-top:4px;">' +
-          optBtn('\u2705 Given','clex-grp','sel-g') + optBtn('Omitted','clex-grp','sel-r') + optBtn('Deferred','clex-grp','sel-a') +
-        '</div></div>' +
-        '<div class="fg"><label>Started on POD</label><select id="clex-pod"><option value="">\u2014</option><option>POD 0</option><option>POD 1</option><option>POD 2</option><option>POD 3+</option></select></div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+        '<div style="font-size:10px;font-weight:800;color:var(--hint);text-transform:uppercase;letter-spacing:.08em;">\ud83d\udc89 Clexane — VTE prophylaxis log</div>' +
+        '<div id="clex-mob-status" style="font-size:11px;color:var(--muted);"></div>' +
       '</div>' +
-      '<div class="fg fr1"><label>Reason for deferral</label><input type="text" id="clex-reason" placeholder="e.g. Hb 7.2 post-op \u2014 transfused. Clexane deferred to POD 2 pending stable Hb."></div>' +
+      '<div id="clex-tracking-status"></div>' +
+      '<div id="clex-log-form">' +
+        '<div class="fr" style="grid-template-columns:1fr 1fr;margin-bottom:6px;">' +
+          '<div class="fg"><label>POD</label><select id="clex-log-pod"><option>POD 1</option><option>POD 2</option><option>POD 3</option><option>POD 4</option><option>POD 5</option><option>POD 6+</option></select></div>' +
+          '<div class="fg"><label>Status</label><div class="og" id="clex-grp" style="margin-top:4px;">' +
+            optBtn('\u2705 Given','clex-grp','sel-g') +
+            optBtn('Omitted','clex-grp','sel-r') +
+            optBtn('Deferred','clex-grp','sel-a') +
+          '</div></div>' +
+        '</div>' +
+        '<div class="fg fr1" style="margin-bottom:6px;"><label>Reason if not given</label>' +
+          '<select id="clex-omit-reason" style="margin-bottom:4px;">' +
+            '<option value="">Select reason (if omitted/deferred)</option>' +
+            '<option>Active bleeding / haemorrhage</option>' +
+            '<option>Low Hb — awaiting transfusion</option>' +
+            '<option>High drain output — haemostasis concern</option>' +
+            '<option>Return to OT planned</option>' +
+            '<option>Spinal/epidural in situ</option>' +
+            '<option>Patient ambulating independently \u2014 stopping Clexane</option>' +
+            '<option>Surgeon decision \u2014 see notes</option>' +
+          '</select>' +
+          '<input type="text" id="clex-reason" placeholder="Additional notes e.g. Hb 7.2, transfused. Resume POD 2.">' +
+        '</div>' +
+        '<button class="btn btn-p" onclick="addClexLog()" style="width:100%;margin-bottom:4px;">+ Log Clexane decision</button>' +
+      '</div>' +
+      '<div id="clex-log-list" style="margin-top:6px;"></div>' +
     '</div></div>' +
 
     '<div class="card" id="leak-card" style="border-color:var(--red-b);background:linear-gradient(135deg,rgba(239,68,68,.06) 0%,var(--sf) 60%);">' +
@@ -4097,16 +4135,43 @@ function checkStomaOutput(val) {
   var f = document.getElementById('stoma-output-flag');
   var lf = document.getElementById('loperamide-flag');
   if (!f || !val) return;
+
+  // Get current POD from stoma pod selector
+  var podEl = document.getElementById('stoma-pod');
+  var podNum = podEl ? parseInt((podEl.value||'').replace(/[^0-9]/g,'')) || 0 : 0;
+
   if (v > 2000) {
-    f.innerHTML = flag('r','\ud83d\udea8','Very high output (&gt;2000 mL) \u2014 act now','Severe dehydration risk. Check electrolytes (Na, K, Mg). IV fluid replacement. Commence loperamide immediately. Consider octreotide if refractory. Senior review.');
+    f.innerHTML = flag('r','\ud83d\udea8','Very high output (>2000 mL) \u2014 act now','Severe dehydration risk. Check electrolytes (Na, K, Mg). IV fluid replacement. Commence loperamide immediately. Consider octreotide if refractory. Senior review.');
     if (lf) lf.innerHTML = flag('r','\ud83d\udea8','Loperamide urgently indicated','Start Loperamide 4mg QID. Restrict hypotonic fluids (water, juice, tea). IV electrolyte replacement.');
   } else if (v > 1500) {
-    f.innerHTML = flag('a','\u26a0\ufe0f','High output (&gt;1500 mL) \u2014 monitor closely','Risk of dehydration. Check electrolytes. Commence loperamide. Restrict hypotonic fluids.');
-    if (lf) lf.innerHTML = flag('a','\u26a0\ufe0f','Consider loperamide','Output trending high. Commence Loperamide 2mg TDS and uptitrate if needed.');
+    f.innerHTML = flag('a','\u26a0\ufe0f','High output (>1500 mL) \u2014 monitor closely','Risk of dehydration. Check electrolytes. Commence loperamide. Restrict hypotonic fluids.');
+    if (lf) lf.innerHTML = flag('a','\u26a0\ufe0f','Loperamide recommended','Start Loperamide 2mg TDS and uptitrate if output remains high.');
+  } else if (v > 700 && podNum >= 3) {
+    // After POD 2, output >700 should trigger loperamide consideration
+    f.innerHTML = flag('a','\u26a0\ufe0f','Output >700 mL after POD ' + podNum + ' \u2014 consider loperamide',
+      'ERAS target after POD 2: output <700 mL/day to reduce dehydration risk.\n\n' +
+      'Start: Loperamide 2 tabs (4mg) OM as starting dose.\n' +
+      'If output remains >700: uptitrate to 2mg BD then TDS.\n' +
+      'Also: restrict hypotonic fluids (water, juice, tea) \u2014 replace with oral rehydration solution.');
+    if (lf) lf.innerHTML = flag('b','\ud83d\udc8a','Loperamide — document decision',
+      'If starting: Loperamide 4mg (2 tabs) OM. Uptitrate if needed.\n' +
+      'If NOT starting loperamide, document reason below:');
+    // Show reason field
+    var reasonBlock = document.getElementById('loperamide-reason-block');
+    if (reasonBlock) reasonBlock.style.display = 'block';
   } else if (v < 200 && v > 0) {
-    f.innerHTML = flag('a','\u26a0\ufe0f','Low output (&lt;200 mL) \u2014 check for obstruction','Ensure stoma is not obstructed. Review for ileus. Check for parastomal hernia. Seek senior review if no output &gt;24h.');
-  } else if (v >= 200 && v <= 1500) {
-    f.innerHTML = flag('g','\u2705','Output within normal range (200\u20131500 mL/day)','No action required. Continue monitoring.');
+    f.innerHTML = flag('a','\u26a0\ufe0f','Low output (<200 mL) \u2014 check for obstruction','Ensure stoma is not obstructed. Review for ileus. Check for parastomal hernia. Seek senior review if no output >24h.');
+    if (lf) lf.innerHTML = '';
+    var reasonBlock = document.getElementById('loperamide-reason-block');
+    if (reasonBlock) reasonBlock.style.display = 'none';
+  } else if (v >= 200 && v <= 700) {
+    f.innerHTML = flag('g','\u2705','Output within target range (200\u2013700 mL/day)','No action required. Continue monitoring.');
+    if (lf) lf.innerHTML = '';
+    var reasonBlock = document.getElementById('loperamide-reason-block');
+    if (reasonBlock) reasonBlock.style.display = 'none';
+  } else if (v > 700 && podNum < 3) {
+    f.innerHTML = flag('b','\u2139\ufe0f','Output >700 mL on POD ' + podNum + ' \u2014 monitor','Loperamide not routinely indicated before POD 2 unless output is persistently high. Review tomorrow.');
+    if (lf) lf.innerHTML = '';
   }
 }
 
@@ -4234,6 +4299,8 @@ function addMobEntry() {
   document.getElementById('mob-notes').value = '';
   toast('\ud83d\udeb6 Mobilisation logged');
   refreshWardRound();
+  // Update Clexane tracking based on new mob status
+  if (typeof updateClexTrackingStatus === 'function') updateClexTrackingStatus();
 }
 
 function checkWoundStatus(val) {
@@ -5371,6 +5438,116 @@ function exportRegistryCSV() {
   toast('\u2705 Registry downloaded');
 }
 
+var clexLog = [];
+
+function addClexLog() {
+  var pod    = document.getElementById('clex-log-pod') ? document.getElementById('clex-log-pod').value : '';
+  var statusEl = document.querySelector('#clex-grp .sel-g, #clex-grp .sel-r, #clex-grp .sel-a');
+  var status = statusEl ? statusEl.textContent.trim() : '';
+  var omitReason = document.getElementById('clex-omit-reason') ? document.getElementById('clex-omit-reason').value : '';
+  var notes  = document.getElementById('clex-reason') ? document.getElementById('clex-reason').value.trim() : '';
+
+  if (!status) { toast('Select Clexane status first'); return; }
+
+  clexLog.push({ pod:pod, status:status, omitReason:omitReason, notes:notes, id:Date.now() });
+  renderClexLog();
+  updateClexTrackingStatus();
+  refreshWardRound();
+
+  // Reset form
+  if (document.getElementById('clex-omit-reason')) document.getElementById('clex-omit-reason').value = '';
+  if (document.getElementById('clex-reason')) document.getElementById('clex-reason').value = '';
+  // Deselect status buttons
+  document.querySelectorAll('#clex-grp .opt').forEach(function(b) { b.className = 'opt'; });
+  toast('\u2705 Clexane logged: ' + pod + ' \u00b7 ' + status);
+}
+
+function deleteClexLog(id) {
+  clexLog = clexLog.filter(function(e) { return e.id !== id; });
+  renderClexLog();
+  updateClexTrackingStatus();
+  refreshWardRound();
+  toast('Entry removed');
+}
+
+function renderClexLog() {
+  var el = document.getElementById('clex-log-list');
+  if (!el) return;
+  if (!clexLog.length) { el.innerHTML = ''; return; }
+  el.innerHTML = clexLog.map(function(e) {
+    var isGiven   = e.status.indexOf('Given') > -1;
+    var isOmitted = e.status.indexOf('Omitted') > -1;
+    var col = isGiven ? 'var(--green)' : isOmitted ? 'var(--red)' : 'var(--amber)';
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:var(--rs);background:var(--sf2);border:1px solid var(--bd);border-left:3px solid ' + col + ';margin-bottom:4px;">' +
+      '<div style="flex:1;">' +
+        '<div style="display:flex;gap:8px;align-items:center;">' +
+          '<span style="font-size:10.5px;font-weight:700;font-family:var(--mono);color:var(--muted);">' + e.pod + '</span>' +
+          '<span style="font-size:12px;font-weight:700;color:' + col + ';">' + e.status + '</span>' +
+        '</div>' +
+        (e.omitReason ? '<div style="font-size:11.5px;color:var(--muted);margin-top:2px;">' + e.omitReason + '</div>' : '') +
+        (e.notes ? '<div style="font-size:11px;color:var(--hint);">' + e.notes + '</div>' : '') +
+      '</div>' +
+      '<button onclick="deleteClexLog(' + e.id + ')" style="flex-shrink:0;width:22px;height:22px;border-radius:5px;border:1px solid var(--bd2);background:none;color:var(--hint);font-size:12px;cursor:pointer;" onmouseover="this.style.background=\'var(--red-l)\';this.style.color=\'var(--red)\'" onmouseout="this.style.background=\'none\';this.style.color=\'var(--hint)\'">\u00d7</button>' +
+    '</div>';
+  }).join('');
+}
+
+function updateClexTrackingStatus() {
+  var statusEl  = document.getElementById('clex-tracking-status');
+  var formEl    = document.getElementById('clex-log-form');
+  var mobStatus = document.getElementById('clex-mob-status');
+  if (!statusEl) return;
+
+  // Check if ambulating independently from mob log
+  var walkAchieved = window.erasAchieved && window.erasAchieved['ms-walk'];
+  var highestMobLevel = 0;
+  if (mobLog.length) {
+    var mobHierarchy2 = ['sat up in bed','sat out of bed','stood at bedside','walk in room','walk to corridor','walk independently'];
+    mobLog.forEach(function(m) {
+      var l = (m.level||'').toLowerCase();
+      var lvl = 0;
+      mobHierarchy2.forEach(function(k, i) { if (l.indexOf(k) > -1) lvl = i+1; });
+      if (lvl > highestMobLevel) highestMobLevel = lvl;
+    });
+  }
+
+  var isWalkingIndependently = highestMobLevel >= 4; // walk in room or above
+
+  // Update mob status indicator
+  if (mobStatus) {
+    if (isWalkingIndependently) {
+      mobStatus.innerHTML = '<span style="color:var(--green);font-weight:700;">\ud83d\udeb6 Walking independently \u2014 Clexane tracking stopped</span>';
+    } else if (highestMobLevel > 0) {
+      var levels2 = ['','Sat up','Sat out of bed','Stood','Walk in room','Walk to corridor','Walk independently'];
+      mobStatus.innerHTML = '<span style="color:var(--muted);">Mob: ' + (levels2[highestMobLevel]||'') + '</span>';
+    } else {
+      mobStatus.innerHTML = '<span style="color:var(--hint);">No mobilisation logged yet</span>';
+    }
+  }
+
+  if (isWalkingIndependently) {
+    // Stop tracking — hide form, show completion banner
+    if (formEl) formEl.style.display = 'none';
+    statusEl.innerHTML = flag('g','\u2705','Clexane tracking complete \u2014 patient walking independently',
+      'Patient is ambulating independently. VTE risk reduced with mobilisation. No further daily Clexane tracking required.\n' +
+      'Ensure discharge prescription is completed if Clexane course continues at home.');
+  } else {
+    // Still tracking — show form
+    if (formEl) formEl.style.display = 'block';
+    // Check if today already logged
+    var lastEntry = clexLog.length ? clexLog[clexLog.length-1] : null;
+    if (lastEntry && lastEntry.status.indexOf('Given') > -1) {
+      statusEl.innerHTML = flag('g','\u2705','Clexane given \u2014 ' + lastEntry.pod,'VTE prophylaxis on track. Log again tomorrow.');
+    } else if (lastEntry && (lastEntry.status.indexOf('Omitted') > -1 || lastEntry.status.indexOf('Deferred') > -1)) {
+      statusEl.innerHTML = flag('a','\u26a0\ufe0f','Clexane not given \u2014 ' + lastEntry.pod,
+        'Reason: ' + (lastEntry.omitReason || lastEntry.notes || 'Not documented') + '\n' +
+        'Review again tomorrow. Document reason daily until given or patient ambulating independently.');
+    } else {
+      statusEl.innerHTML = flag('b','\u2139\ufe0f','Clexane not yet logged today','Log Clexane decision daily until patient is walking independently.');
+    }
+  }
+}
+
 function closeMo(id) { document.getElementById(id).style.display = 'none'; }
 function toggleSb() {
   document.getElementById('sb').classList.toggle('open');
@@ -5514,6 +5691,7 @@ function doAutosave() {
       if (lastDiet.stage < prevDiet.stage) data['_setback_count'] = (parseInt(data['_setback_count']||0) + 1);
     }
     if (mobLog.length)   data['_mob_log']   = mobLog;
+    if (clexLog.length)  data['_clex_log']  = clexLog;
     if (stomaLog.length) data['_stoma_log'] = stomaLog;
     if (painLog.length) {
       data['_last_nrs'] = painLog[painLog.length-1].nrs;
