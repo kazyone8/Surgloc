@@ -2835,6 +2835,62 @@ function buildSurgery() {
       '<div class="fr">' +
         '<div class="fg"><label>Anastomosis type</label><select id="sg-anastomosis"><option value="">Select</option><option>Intracorporeal</option><option>Extracorporeal</option><option>No anastomosis \u2014 end stoma</option></select></div>' +
         '<div class="fg"><label>NOSE \u2014 Natural orifice specimen extraction</label><div class="og" id="nose-grp" style="margin-top:4px;">' + optBtn('Yes \u2713','nose-grp','sel-g') + optBtn('No','nose-grp','sel') + '</div></div>' +
+        '<div class="fg fr1">' +
+          '<details style="margin-bottom:8px;">' +
+            '<summary style="font-size:11.5px;color:var(--blue);font-weight:600;cursor:pointer;padding:6px 10px;background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--rs);list-style:none;">' +
+              '\ud83e\udd16 Robotic colectomy — indications & evidence (tap to expand)' +
+            '</summary>' +
+            '<div style="margin-top:4px;padding:12px;border:1px solid var(--bd);border-radius:var(--rs);font-size:12px;line-height:1.9;">' +
+
+              '<div style="font-weight:800;color:var(--text);margin-bottom:8px;">Strong indications for robotic over laparoscopic colectomy:</div>' +
+
+              '<div style="padding:7px 10px;background:var(--red-l);border-left:3px solid var(--red);border-radius:var(--rs);margin-bottom:6px;">' +
+                '<b style="color:var(--red);">T4b / locally advanced colonic tumour</b><br>' +
+                '<span style="color:var(--muted);">Lower conversion rate for T4b colon cancer vs laparoscopy (Kamel et al., Surg Innov 2023). Robotic arms allow dissection in confined planes adjacent to structures. Multivisceral resection aided by stable 3D view.</span>' +
+              '</div>' +
+
+              '<div style="padding:7px 10px;background:var(--amber-l);border-left:3px solid var(--amber);border-radius:var(--rs);margin-bottom:6px;">' +
+                '<b style="color:var(--amber);">Obesity (BMI \u226530)</b><br>' +
+                '<span style="color:var(--muted);">Conversion rates significantly lower for robotic in obese patients (OR 0.41 vs lap; meta-analysis 48 studies, 34,846 patients, Tech Coloproctol 2025). Stable camera and wristed instruments outperform straight lap in adipose-heavy fields.</span>' +
+              '</div>' +
+
+              '<div style="padding:7px 10px;background:var(--amber-l);border-left:3px solid var(--amber);border-radius:var(--rs);margin-bottom:6px;">' +
+                '<b style="color:var(--amber);">Male gender</b><br>' +
+                '<span style="color:var(--muted);">Conversion rates significantly lower in males (OR 0.28; same meta-analysis). Relevant for colonic tumours in narrow anatomy or deep pelvis extension.</span>' +
+              '</div>' +
+
+              '<div style="padding:7px 10px;background:var(--amber-l);border-left:3px solid var(--amber);border-radius:var(--rs);margin-bottom:6px;">' +
+                '<b style="color:var(--amber);">Right hemicolectomy with intracorporeal anastomosis</b><br>' +
+                '<span style="color:var(--muted);">Robotic facilitates intracorporeal anastomosis for RHC — associated with shorter LOS, fewer incisional hernias, less ileus vs extracorporeal (systematic review, Meyer et al., J Robot Surg 2024). NOSE more feasible robotically.</span>' +
+              '</div>' +
+
+              '<div style="padding:7px 10px;background:var(--sf2);border-left:3px solid var(--hint);border-radius:var(--rs);margin-bottom:6px;">' +
+                '<b style="color:var(--text);">Transverse colon cancer</b><br>' +
+                '<span style="color:var(--muted);">Technically challenging for laparoscopy. Robotic approach technically feasible with stable camera platform. Limited comparative data but growing evidence supports use (Morini et al., Int J Colorectal Dis 2025).</span>' +
+              '</div>' +
+
+              '<div style="padding:7px 10px;background:var(--sf2);border-left:3px solid var(--hint);border-radius:var(--rs);margin-bottom:6px;">' +
+                '<b style="color:var(--text);">Previous abdominal surgery / adhesions</b><br>' +
+                '<span style="color:var(--muted);">Robotic associated with lower conversion in patients with prior surgery. Wristed instruments and 3D magnification aid adhesiolysis in scarred fields.</span>' +
+              '</div>' +
+
+              '<div style="margin-top:8px;padding:7px 10px;background:var(--green-l);border-radius:var(--rs);font-size:11px;color:var(--green);font-weight:600;">' +
+                '\u2705 Overall evidence (ACS-NSQIP 53,209 colectomies, 2015\u20132020): Robotic RHC and left colectomy associated with shorter LOS, fewer complications, better "textbook outcomes" vs laparoscopy. Fewer conversions across most colonic resections.' +
+              '</div>' +
+
+              '<div style="margin-top:6px;padding:7px 10px;background:var(--red-l);border-radius:var(--rs);font-size:11px;color:var(--red);">' +
+                '\u26a0\ufe0f Caveat: Longer OR time and higher cost. Not justified for straightforward cases in experienced laparoscopic surgeons. Patient selection is key.' +
+              '</div>' +
+
+            '</div>' +
+          '</details>' +
+          '<label>Would robotic approach have been preferred?</label><div class="og" id="robot-preferred-grp" style="margin-top:4px;">' +
+          optBtn('Yes \u2014 better suited for robot','robot-preferred-grp','sel-g') +
+          optBtn('No \u2014 lap appropriate','robot-preferred-grp','sel') +
+          optBtn('N/A \u2014 already robotic','robot-preferred-grp','sel-b') +
+        '</div>' +
+        '<input type="text" id="robot-preferred-reason" placeholder="Reason e.g. narrow pelvis, BMI >35, prior radiation, difficult dissection plane..." style="margin-top:6px;">' +
+        '</div>' +
         '<div class="fg"><label>Air leak test</label><div class="og" id="leak-grp" style="margin-top:4px;">' + optBtn('Negative \u2713','leak-grp','sel-g') + optBtn('Positive \u2717','leak-grp','sel-r') + optBtn('N/A','leak-grp','sel') + '</div></div>' +
       '</div>' +
     '</div></div>' +
