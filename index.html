@@ -2148,6 +2148,8 @@ function enforceDeleteAuth(caseId) {
     toast('\ud83d\udd12 Only consultants can delete cases');
     return false;
   }
+  // WKY = project owner, can delete any case
+  if (curUser.id === 'wky') return true;
   var c = cases.find(function(x) { return x.id === caseId; });
   if (c) {
     var ownerUser = USERS.find(function(u) { return u.name === c.surgeon || u.id === c.surgeon; });
@@ -5076,6 +5078,8 @@ function updateAuthUI() {
   });
   // Re-render cases list to show/hide delete buttons
   if (typeof renderCases === 'function') renderCases();
+  // Refresh sync buttons for new role
+  if (typeof addSyncButtons === 'function') addSyncButtons();
   // If a module is open, re-enforce read-only
   if (curMod) setTimeout(function() { enforceReadOnly(curMod); }, 100);
 }
@@ -5517,15 +5521,23 @@ function mergeCase(local, incoming) {
 
 // ── Encode / decode — supports single case AND full database ──
 function encodeAll() {
-  // Full export includes ALL cases (active + deleted) so deletions propagate
+  // WKY = project owner, exports ALL cases
+  // Other consultants export their own cases only
+  var exportCases = cases;
+  if (curUser.id !== 'wky') {
+    exportCases = cases.filter(function(c) {
+      var ownerUser = USERS.find(function(u) { return u.name === c.surgeon || u.id === c.surgeon; });
+      return !ownerUser || ownerUser.id === curUser.id;
+    });
+  }
   var payload = JSON.stringify({
     v: 2,
     type: 'full',
     ts: Date.now(),
     author: curUser.name,
     authorId: curUser.id,
-    count: cases.length,
-    cases: cases   // includes deleted:true cases
+    count: exportCases.filter(function(c){return !c.deleted;}).length,
+    cases: exportCases
   });
   return 'SL3:' + toBase64(xorStr(payload, SYNC_KEY));
 }
@@ -5566,10 +5578,16 @@ function openExportModal(mode) {
   var code, label, subLabel;
 
   if (mode === 'full') {
-    var activeCases = cases.filter(function(c) { return !c.deleted; });
+    if (!isConsultant()) { toast('\ud83d\udd12 Only consultants can sync cases'); return; }
+    var isOwner = curUser.id === 'wky';
+    var exportCases = isOwner ? cases : cases.filter(function(c) {
+      var ownerUser = USERS.find(function(u) { return u.name === c.surgeon || u.id === c.surgeon; });
+      return !ownerUser || ownerUser.id === curUser.id;
+    });
+    var activeCount = exportCases.filter(function(c){ return !c.deleted; }).length;
     code = encodeAll();
-    label = 'All cases (' + activeCases.length + ' patients)';
-    subLabel = 'Full database export — all active cases';
+    label = isOwner ? 'All cases (' + activeCount + ' patients)' : 'My cases (' + activeCount + ' patients)';
+    subLabel = isOwner ? '\ud83d\udc51 WKY \u2014 full database export' : curUser.name + '\u2019s cases only \u2014 ' + activeCount + ' active';
   } else {
     if (!curCase) { toast('Open a case first for single export'); return; }
     if (curMod) saveCurrentMod();
@@ -5749,7 +5767,18 @@ function previewImport() {
     return;
   }
 
-  var ts = new Date(decoded.ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  var ts       = new Date(decoded.ts);
+  var dateStr  = ts.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  var timeStr  = ts.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  var nowStr   = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  var ageMs    = Date.now() - decoded.ts;
+  var ageMins  = Math.round(ageMs / 60000);
+  var ageStr   = ageMins < 1 ? 'just now' : ageMins < 60 ? ageMins + ' min ago' : Math.round(ageMins/60) + 'h ago';
+
+  // Find sender user object for colour
+  var senderUser = USERS.find(function(u) { return u.id === decoded.authorId || u.name === decoded.author; });
+  var senderCol  = senderUser ? senderUser.col : 'var(--blue)';
+  var senderIni  = senderUser ? senderUser.ini : (decoded.author||'?').slice(0,3).toUpperCase();
 
   if (decoded.type === 'full') {
     var incoming = decoded.cases || [];
@@ -5761,24 +5790,58 @@ function previewImport() {
       else if (senderIsConsultant && c.deleted && !local.deleted) willDelete++;
       else mergeCount++;
     });
-    var deleteWarning = willDelete > 0 ? '<p style="color:var(--red);font-weight:700;">\ud83d\uddd1 ' + willDelete + ' case(s) will be deleted (sender is consultant)</p>' : '';
+
+    var deleteWarning = willDelete > 0
+      ? '<div style="margin-top:6px;padding:6px 10px;background:var(--red-l);border-radius:var(--rs);color:var(--red);font-size:11.5px;font-weight:700;">\ud83d\uddd1 ' + willDelete + ' case(s) will be deleted — sender is consultant</div>'
+      : '';
+
     preview.innerHTML =
-      '<div class="flag flag-' + (willDelete ? 'a' : 'g') + '" style="margin-top:8px;"><div class="fi">' + (willDelete ? '\u26a0\ufe0f' : '\u2705') + '</div><div class="fb">' +
-        '<div class="ft">Full database \u2014 ' + incoming.filter(function(c){return !c.deleted;}).length + ' active cases from ' + decoded.author + '</div>' +
-        '<p>Exported at ' + ts + '</p>' +
-        '<p>\ud83d\udfe2 ' + newCount + ' new &nbsp;\u00b7&nbsp; \ud83d\udd04 ' + mergeCount + ' to merge</p>' +
-        deleteWarning +
-      '</div></div>';
+      '<div style="margin-top:10px;border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;">' +
+        // Sender header
+        '<div style="background:' + senderCol + '11;border-bottom:1px solid var(--bd);padding:10px 14px;display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:' + senderCol + '22;color:' + senderCol + ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:var(--mono);flex-shrink:0;">' + senderIni + '</div>' +
+          '<div>' +
+            '<div style="font-size:13px;font-weight:700;">' + (decoded.author||'Unknown') + '</div>' +
+            '<div style="font-size:11px;color:var(--muted);">Exported ' + dateStr + ' at ' + timeStr + ' \u00b7 ' + ageStr + '</div>' +
+          '</div>' +
+          '<div style="margin-left:auto;font-size:10px;font-family:var(--mono);color:var(--hint);">Your time: ' + nowStr + '</div>' +
+        '</div>' +
+        // Content summary
+        '<div style="padding:10px 14px;">' +
+          '<div style="font-size:12px;font-weight:700;margin-bottom:6px;">Full database \u2014 ' + incoming.filter(function(c){return !c.deleted;}).length + ' active cases</div>' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+            '<span style="font-size:11.5px;padding:3px 10px;border-radius:20px;background:var(--green-l);color:var(--green);font-weight:700;">\ud83d\udfe2 ' + newCount + ' new</span>' +
+            '<span style="font-size:11.5px;padding:3px 10px;border-radius:20px;background:var(--blue-l);color:var(--blue);font-weight:700;">\ud83d\udd04 ' + mergeCount + ' to merge</span>' +
+            (willDelete ? '<span style="font-size:11.5px;padding:3px 10px;border-radius:20px;background:var(--red-l);color:var(--red);font-weight:700;">\ud83d\uddd1 ' + willDelete + ' to delete</span>' : '') +
+          '</div>' +
+          deleteWarning +
+          '<div style="margin-top:8px;padding:6px 10px;background:var(--amber-l);border-radius:var(--rs);font-size:11.5px;color:var(--amber);">' +
+            '\u26a0\ufe0f Merging will update your local cases with incoming data. This cannot be undone.' +
+          '</div>' +
+        '</div>' +
+      '</div>';
   } else {
     var c = decoded.case;
     var local = cases.find(function(x) { return x.id === c.id; });
     var conflict = local && local._lastSync && decoded.ts < local._lastSync;
     preview.innerHTML =
-      '<div class="flag flag-' + (conflict ? 'a' : 'g') + '" style="margin-top:8px;"><div class="fi">' + (conflict ? '\u26a0\ufe0f' : '\u2705') + '</div><div class="fb">' +
-        '<div class="ft">' + c.id + ' \u2014 ' + c.procLabel + '</div>' +
-        '<p>Exported by <b>' + decoded.author + '</b> at ' + ts + '</p>' +
-        (conflict ? '<p style="color:var(--amber);">\u26a0\ufe0f You have a newer local version. Your newer fields will be kept.</p>' : '<p>No conflicts. Safe to import.</p>') +
-      '</div></div>';
+      '<div style="margin-top:10px;border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;">' +
+        '<div style="background:' + senderCol + '11;border-bottom:1px solid var(--bd);padding:10px 14px;display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:' + senderCol + '22;color:' + senderCol + ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:var(--mono);flex-shrink:0;">' + senderIni + '</div>' +
+          '<div>' +
+            '<div style="font-size:13px;font-weight:700;">' + (decoded.author||'Unknown') + '</div>' +
+            '<div style="font-size:11px;color:var(--muted);">Exported ' + dateStr + ' at ' + timeStr + ' \u00b7 ' + ageStr + '</div>' +
+          '</div>' +
+          '<div style="margin-left:auto;font-size:10px;font-family:var(--mono);color:var(--hint);">Your time: ' + nowStr + '</div>' +
+        '</div>' +
+        '<div style="padding:10px 14px;">' +
+          '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">Single case \u2014 ' + c.id + ' \u00b7 ' + c.procLabel + '</div>' +
+          (conflict
+            ? '<div style="padding:6px 10px;background:var(--amber-l);border-radius:var(--rs);font-size:11.5px;color:var(--amber);">\u26a0\ufe0f You have a newer local version. Your newer fields will be kept.</div>'
+            : '<div style="padding:6px 10px;background:var(--green-l);border-radius:var(--rs);font-size:11.5px;color:var(--green);">\u2705 No conflicts detected. Safe to merge.</div>'
+          ) +
+        '</div>' +
+      '</div>';
   }
 
   btn.disabled = false;
@@ -5844,11 +5907,20 @@ function doImport() {
 function addSyncButtons() {
   var tb = document.getElementById('tb-sync-btns');
   if (!tb) return;
-  tb.innerHTML =
-    '<button class="btn" onclick="openImportModal()" style="font-size:11px;padding:5px 10px;">\u2b07\ufe0f Import</button>' +
-    '<button class="btn btn-p" onclick="openExportModal(\'full\')" style="font-size:11px;padding:5px 10px;">\ud83d\udce4 Sync all</button>' +
-    '<button class="btn" onclick="openExportModal(\'single\')" style="font-size:11px;padding:5px 10px;border-color:var(--teal-b);color:var(--teal);">\ud83d\udcc4 This case</button>' +
-    (isConsultant() ? '<button class="btn" onclick="downloadPatientRegistry()" style="font-size:11px;padding:5px 10px;border-color:var(--purple,#7c3aed);color:var(--purple,#7c3aed);" title="Download case ID to patient name lookup (private — never synced)">\ud83d\udd12 ID Registry</button>' : '');
+  // Import — everyone can import
+  var html = '<button class="btn" onclick="openImportModal()" style="font-size:11px;padding:5px 10px;">\u2b07\ufe0f Import</button>';
+  // Sync all — consultants only (their own cases only)
+  if (isConsultant()) {
+    var syncLabel = curUser.id === 'wky' ? '\ud83d\udce4 Sync all' : '\ud83d\udce4 Sync my cases';
+    html += '<button class="btn btn-p" onclick="openExportModal(\'full\')" style="font-size:11px;padding:5px 10px;">' + syncLabel + '</button>';
+  }
+  // Export single case — everyone can export (if a case is open)
+  html += '<button class="btn" onclick="openExportModal(\'single\')" style="font-size:11px;padding:5px 10px;border-color:var(--teal-b);color:var(--teal);">\ud83d\udcc4 This case</button>';
+  // ID Registry — consultants only
+  if (isConsultant()) {
+    html += '<button class="btn" onclick="downloadPatientRegistry()" style="font-size:11px;padding:5px 10px;border-color:var(--purple,#7c3aed);color:var(--purple,#7c3aed);" title="Patient ID registry — private, never synced">\ud83d\udd12 ID Registry</button>';
+  }
+  tb.innerHTML = html;
 }
 
 // ── INIT ──
@@ -5932,7 +6004,7 @@ setTimeout(openUserModal, 300);
     <div id="sync-import-preview"></div>
     <div class="mo-actions">
       <button class="btn" onclick="stopQRScan();closeMo('mo-sync-import')">Cancel</button>
-      <button class="btn btn-p" id="sync-import-btn" onclick="doImport()" disabled style="flex:1;">Import &amp; merge</button>
+      <button class="btn btn-p" id="sync-import-btn" onclick="doImport()" disabled style="flex:1;">\u2705 Confirm &amp; merge</button>
     </div>
   </div>
 </div>
