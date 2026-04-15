@@ -5969,23 +5969,25 @@ function shareViaAirdrop() {
   var code = document.getElementById('sync-export-code') ? document.getElementById('sync-export-code').value : '';
   if (!code) { toast('Generate a sync code first'); return; }
 
-  // Web Share API — triggers native iOS share sheet (AirDrop, Messages, etc.)
+  // Always copy to clipboard first — receiver can also just paste if share doesn't work
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).catch(function(){});
+  }
+
+  // Web Share API — shares as plain text (AirDrop, Messages, etc.)
   if (navigator.share) {
     navigator.share({
       title: 'SurgLog Sync Code',
-      text: code
+      text: code   // plain text only — no files, no URL — stays in clipboard on receive
     }).then(function() {
-      toast('\u2705 Shared successfully');
+      toast('\u2705 Shared — receiver: paste into SurgLog Import');
     }).catch(function() {
-      // User cancelled — no error needed
+      // User cancelled — code already in clipboard
+      toast('\ud83d\udccb Code copied to clipboard');
     });
   } else {
-    // Fallback for non-iOS — copy to clipboard
-    navigator.clipboard.writeText(code).then(function() {
-      toast('\ud83d\udccb Code copied — AirDrop not available on this device');
-    }).catch(function() {
-      toast('Copy the code manually from the box above');
-    });
+    // Non-iOS fallback — clipboard only
+    toast('\ud83d\udccb Code copied — paste into SurgLog Import on receiving device');
   }
 }
 
