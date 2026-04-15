@@ -3629,9 +3629,11 @@ function updateErasProgress() {
 }
 
 function initSurgery() {
-  evts = [];
+  // NOTE: do NOT reset evts here — restoreMod has already restored them
   var surgEl = document.getElementById('sg-surgeon');
-  if (surgEl && !surgEl.value && curCase.surgeon) surgEl.value = curCase.surgeon;
+  if (surgEl && !surgEl.value && curCase && curCase.surgeon) surgEl.value = curCase.surgeon;
+  // Re-render events if restored
+  if (evts && evts.length) renderEvts();
 }
 
 function onSurgDate(val) {
